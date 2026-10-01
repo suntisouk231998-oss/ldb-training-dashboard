@@ -4849,7 +4849,7 @@ function parseWorkbook(wb){
       if(!row4) continue;
       var rid = cleanCell(gv(row4,am,'rid')), sid2 = cleanCell(gv(row4,am,'sid'));
       if(!rid || !sid2) continue;
-      var k = rid+' '+sid2;
+      var k = rid+'\u0000'+sid2;
       if(dedupe[k]) continue;
       dedupe[k] = 1;
       (attend[rid] = attend[rid] || []).push(sid2);
@@ -5967,20 +5967,20 @@ function renderYearBar(){
   if(!el) return;
   var ys = archiveYears();
   el.innerHTML = ys.map(function(y){
-    return '<button class="ybtn" data-y="'+esc(y)+'" aria-pressed="'+(state.view==='year' && state.year===y)+'">'+esc(y)+'</button>';
+    return '<button class="ybtn" data-y="'+esc(y)+'" aria-pressed="'+(state.view==='year' && state.year===y)+'">'+'ພາບລວມ'+'</button>';
   }).join('') +
   '<button class="ybtn ybtn-staff" data-y="__staff__" aria-pressed="'+(state.view==='staff')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>'+
-      'ພະນັກງານ</button>' +
+      'ຂໍ້ມູນພະນັກງານ</button>' +
   '<button class="ybtn ybtn-report" data-y="__report__" aria-pressed="'+(state.view==='report')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>'+
-      'ລາຍງານໜ້າດຽວ</button>' +
+      'ຕິດຕາມຫົວຂໍ້ຝຶກປະຈຳເດືອນ</button>' +
   '<button class="ybtn ybtn-dept" data-y="__dept__" aria-pressed="'+(state.view==='dept')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 13h.01M14 9h.01M14 13h.01M9 21v-4h6v4"/></svg>'+
       'ລາຍຝ່າຍ/ສາຂາ</button>' +
   '<button class="ybtn ybtn-poster" data-y="__poster__" aria-pressed="'+(state.view==='poster')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>'+
-      'ສະຫຼຸບແບບ Poster</button>' +
+      'ລາຍງານຄະນະຜູ້ບໍລິຫານ</button>' +
   '<button class="ybtn ybtn-qr" data-y="__qr__" aria-pressed="'+(state.view==='qr')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM14 20h3M20 14v3M20 20v.01"/></svg>'+
       'ສ້າງ QR ລົງທະບຽນ</button>' +
