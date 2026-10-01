@@ -1,0 +1,55 @@
+name: Sync Dashboard Data
+
+# Pulls the latest Google Sheet export, rebuilds index.html from
+# dashboard.html + the fresh data, and commits the result straight to
+# main -- entirely on GitHub's own infrastructure, with GitHub's own
+# built-in GITHUB_TOKEN (no personal access token needed).
+#
+# Runs automatically every day, and can also be run on demand any time
+# from the "Actions" tab -> "Sync Dashboard Data" -> "Run workflow".
+
+on:
+  schedule:
+    # 23:00 UTC = 06:00 Asia/Vientiane (UTC+7), daily
+    - cron: '0 23 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright + Chromium
+        run: |
+          npm install playwright@latest
+          npx playwright install --with-deps chromium
+
+      - name: Download latest Google Sheet export
+        run: |
+          curl -L -f --retry 3 -o sheet_export.xlsx "https://docs.google.com/spreadsheets/d/1xuayUZ3NrVcnPhaDT-RDcogqPE2zj-LQWMxkx8mkRuc/export?format=xlsx"
+          ls -la sheet_export.xlsx
+
+      - name: Sync data and rebuild index.html
+        run: node scripts/sync.js
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html archive.json
+          if git diff --cached --quiet; then
+            echo "No data changes -- nothing to commit."
+          else
+            git commit -m "Auto-sync dashboard data ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git push
+          fi
