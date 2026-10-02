@@ -44,7 +44,7 @@ const ROOT = path.join(__dirname, '..');
       await page.waitForFunction(() => {
         const bd = document.getElementById('modalBackdrop');
         return bd && !bd.hidden;
-      }, { timeout: 5000 });
+      }, { timeout: 8000 });
     } catch (e) {
       console.log('[info] no more modals after', i, 'click(s)');
       break;
@@ -55,18 +55,41 @@ const ROOT = path.join(__dirname, '..');
     });
     console.log('[info] modal appeared:', modalTitle);
     await page.click('#modalOk');
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(600);
   }
 
-  await page.waitForFunction(() => {
-    const btn = document.getElementById('saveBtn');
-    if (!btn) return false;
-    const t = btn.textContent || '';
-    return t.indexOf('ບັນທຶກແລ້ວ') !== -1 || t.indexOf('ໃນເຄື່ອງນີ້') !== -1 ||
-           t.indexOf('ບໍ່ສຳເລັດ') !== -1 || t.indexOf('ອ່ານຢ່າງດຽວ') !== -1;
-  }, { timeout: 15000 }).catch(e => console.log('[warn] save state wait timed out:', e.message));
-
-  await page.waitForTimeout(1500);
+  // The actual parse/match/render/save work after the modals close can take
+  // a long time (tens of seconds) for a large sheet, with no reliable DOM
+  // signal of completion (the save-button text does not reflect it). So
+  // instead of waiting for a fixed delay or a button state, poll the
+  // localStorage payload's length until it stops changing across
+  // consecutive checks -- that's what "done" actually looks like.
+  let lastLen = -1;
+  let stableCount = 0;
+  const REQUIRED_STABLE = 3;
+  const POLL_MS = 3000;
+  const MAX_MS = 170000;
+  const started = Date.now();
+  while (Date.now() - started < MAX_MS) {
+    const len = await page.evaluate(() => {
+      try {
+        const v = localStorage.getItem('ldb_training_dashboard_v2');
+        return v ? v.length : 0;
+      } catch (e) { return -1; }
+    });
+    console.log('[poll]', Math.round((Date.now() - started) / 1000) + 's', 'localStorage length =', len);
+    if (len > 0 && len === lastLen) {
+      stableCount++;
+      if (stableCount >= REQUIRED_STABLE) {
+        console.log('[info] localStorage stable for', REQUIRED_STABLE, 'checks -- done');
+        break;
+      }
+    } else {
+      stableCount = 0;
+    }
+    lastLen = len;
+    await page.waitForTimeout(POLL_MS);
+  }
 
   const archiveJson = await page.evaluate(() => {
     try { return localStorage.getItem('ldb_training_dashboard_v2'); } catch (e) { return null; }
