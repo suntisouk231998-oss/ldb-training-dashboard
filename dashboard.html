@@ -998,6 +998,7 @@
   .pv-stat-item .l{ display:block; font-size:10.5px; font-weight:700; color:var(--text-2); }
   .pv-stat-item .v{ display:block; font-family:"Noto Serif Lao",serif; font-size:15px; font-weight:700; color:var(--text-1); margin-top:2px; }
   .pv-stat-item .v small{ font-size:10.5px; font-weight:500; color:var(--text-2); }
+  .pv-stat-item .s{ display:block; font-size:10px; color:var(--text-muted); margin-top:2px; }
 
   /* box 5's full pie (no natural hole) gets a small floating disc behind its
      center total, so the number sits on a clean surface instead of directly
@@ -7279,11 +7280,11 @@ function renderPosterView(m){
       '</div>'+
 
       '<div class="pv-panel pv-4">'+
-        '<div class="pv-head"><span class="pv-num pv-c2">2</span><div><h3>ແຜນຝຶກອົບຮົມ ທຽບ ຜົນຕົວຈິງ</h3><div class="pv-desc">ຫົວຂໍ້ໃນແຜນທີ່ຕິດຕາມແລ້ວ '+fmtInt(peb.tracked)+' ຫົວຂໍ້</div></div></div>'+
+        '<div class="pv-head"><span class="pv-num pv-c2">2</span><div><h3>ແຜນຝຶກອົບຮົມ ທຽບ ຜົນຕົວຈິງ</h3><div class="pv-desc">'+label+' — ສຳເລັດ '+fmtInt(sc.done)+' ຈາກແຜນ '+fmtInt(sc.planned)+' ຫົວຂໍ້</div></div></div>'+
         '<div class="pv-panel-body"><div class="pv-exec-wrap">'+
           '<div class="pv-stat-row">'+
-            '<div class="pv-stat-item"><span class="l">ແຜນ</span><span class="v num">'+fmtInt(sc.planned)+' <small>ຫົວຂໍ້</small></span></div>'+
-            '<div class="pv-stat-item"><span class="l">ຜົນ</span><span class="v num">'+fmtInt(sc.done)+' <small>ຫົວຂໍ້</small></span></div>'+
+            '<div class="pv-stat-item"><span class="l">ແຜນ'+(state.posterMonth!==-1? ' ໃນເດືອນນີ້':'')+'</span><span class="v num">'+fmtInt(sc.planned)+' <small>ຫົວຂໍ້</small></span></div>'+
+            '<div class="pv-stat-item"><span class="l">ສຳເລັດ</span><span class="v num">'+fmtInt(sc.done)+' <small>ຫົວຂໍ້</small></span><span class="s">ໃນແຜນ '+fmtInt(sc.planned)+' ຫົວຂໍ້</span></div>'+
           '</div>'+
           donutCard('', execItems, {size:120, thickness:19, centerLabel:fmtPct(sc.planned? sc.done/sc.planned:0), centerSub:'ສຳເລັດ'})
             .replace(/^<div class="donut-card"><h4><\/h4>/,'<div class="pv-panel-exec">')
