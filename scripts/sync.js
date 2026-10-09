@@ -27,6 +27,7 @@ const ROOT = path.join(__dirname, '..');
 
   await page.waitForSelector('#fileInput', { timeout: 15000 });
 
+  // start from a clean localStorage so we don't merge with a stale profile
   await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
   await page.reload();
   await page.waitForSelector('#fileInput', { timeout: 15000 });
@@ -39,12 +40,15 @@ const ROOT = path.join(__dirname, '..');
     buffer: xlsxBuffer
   });
 
+  // The app opens a modal asking which year this data is for (pre-filled),
+  // and sometimes a second confirm modal ("overwrite existing year data?").
+  // Both use the same #modalOk button. Click through up to 3 times.
   for (let i = 0; i < 3; i++) {
     try {
       await page.waitForFunction(() => {
         const bd = document.getElementById('modalBackdrop');
         return bd && !bd.hidden;
-      }, { timeout: 8000 });
+      }, { timeout: 5000 });
     } catch (e) {
       console.log('[info] no more modals after', i, 'click(s)');
       break;
@@ -55,41 +59,18 @@ const ROOT = path.join(__dirname, '..');
     });
     console.log('[info] modal appeared:', modalTitle);
     await page.click('#modalOk');
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(400);
   }
 
-  // The actual parse/match/render/save work after the modals close can take
-  // a long time (tens of seconds) for a large sheet, with no reliable DOM
-  // signal of completion (the save-button text does not reflect it). So
-  // instead of waiting for a fixed delay or a button state, poll the
-  // localStorage payload's length until it stops changing across
-  // consecutive checks -- that's what "done" actually looks like.
-  let lastLen = -1;
-  let stableCount = 0;
-  const REQUIRED_STABLE = 3;
-  const POLL_MS = 3000;
-  const MAX_MS = 170000;
-  const started = Date.now();
-  while (Date.now() - started < MAX_MS) {
-    const len = await page.evaluate(() => {
-      try {
-        const v = localStorage.getItem('ldb_training_dashboard_v2');
-        return v ? v.length : 0;
-      } catch (e) { return -1; }
-    });
-    console.log('[poll]', Math.round((Date.now() - started) / 1000) + 's', 'localStorage length =', len);
-    if (len > 0 && len === lastLen) {
-      stableCount++;
-      if (stableCount >= REQUIRED_STABLE) {
-        console.log('[info] localStorage stable for', REQUIRED_STABLE, 'checks -- done');
-        break;
-      }
-    } else {
-      stableCount = 0;
-    }
-    lastLen = len;
-    await page.waitForTimeout(POLL_MS);
-  }
+  await page.waitForFunction(() => {
+    const btn = document.getElementById('saveBtn');
+    if (!btn) return false;
+    const t = btn.textContent || '';
+    return t.indexOf('ບັນທຶກແລ້ວ') !== -1 || t.indexOf('ໃນເຄື່ອງນີ້') !== -1 ||
+           t.indexOf('ບໍ່ສຳເລັດ') !== -1 || t.indexOf('ອ່ານຢ່າງດຽວ') !== -1;
+  }, { timeout: 15000 }).catch(e => console.log('[warn] save state wait timed out:', e.message));
+
+  await page.waitForTimeout(1500);
 
   const archiveJson = await page.evaluate(() => {
     try { return localStorage.getItem('ldb_training_dashboard_v2'); } catch (e) { return null; }
@@ -98,7 +79,7 @@ const ROOT = path.join(__dirname, '..');
   await browser.close();
 
   if (!archiveJson) {
-    console.log('[error] no archive found in localStorage after upload -- aborting without touching index.html');
+    console.log('[error] no archive found in localStorage after upload — aborting without touching index.html');
     process.exit(1);
   }
 
@@ -112,6 +93,7 @@ const ROOT = path.join(__dirname, '..');
   fs.writeFileSync(path.join(ROOT, 'archive.json'), archiveJson);
   console.log('[info] wrote archive.json, length =', archiveJson.length);
 
+  // Embed archive.json into dashboard.html's #rawData tag -> index.html
   const startMarker = Buffer.from('<script id="rawData" type="application/json">');
   const endMarker = Buffer.from('</script>');
 
@@ -132,6 +114,34 @@ const ROOT = path.join(__dirname, '..');
 
   fs.writeFileSync(path.join(ROOT, 'index.html'), newHtml);
   console.log('[info] wrote index.html,', newHtml.length, 'bytes');
+
+  // Also build the simplified executive view (3 tabs only: overview, monthly
+  // topic tracking, executive report) at exec/index.html. Same data, same
+  // template, but with the ldb-exec-mode meta flag flipped to "true" so the
+  // dashboard's own JS hides the staff/dept/QR/AI/multi-year tabs.
+  const execMarker = Buffer.from('<meta name="ldb-exec-mode" content="false">');
+  const execMarkerOn = Buffer.from('<meta name="ldb-exec-mode" content="true">');
+  const execMarkerIdx = htmlBuf.indexOf(execMarker);
+  if (execMarkerIdx === -1) {
+    console.log('[warn] ldb-exec-mode meta marker not found — skipping exec/index.html build');
+  } else {
+    const execHtmlBuf = Buffer.concat([
+      htmlBuf.subarray(0, execMarkerIdx),
+      execMarkerOn,
+      htmlBuf.subarray(execMarkerIdx + execMarker.length)
+    ]);
+    const execStartIdx = execHtmlBuf.indexOf(startMarker);
+    const execContentStart = execStartIdx + startMarker.length;
+    const execEndIdx = execHtmlBuf.indexOf(endMarker, execContentStart);
+    const newExecHtml = Buffer.concat([
+      execHtmlBuf.subarray(0, execContentStart),
+      archiveBuf,
+      execHtmlBuf.subarray(execEndIdx)
+    ]);
+    fs.mkdirSync(path.join(ROOT, 'exec'), { recursive: true });
+    fs.writeFileSync(path.join(ROOT, 'exec', 'index.html'), newExecHtml);
+    console.log('[info] wrote exec/index.html,', newExecHtml.length, 'bytes');
+  }
 })().catch(err => {
   console.error('[fatal]', err);
   process.exit(1);
