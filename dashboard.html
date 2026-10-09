@@ -4,6 +4,7 @@
 <meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <title>ຕິດຕາມການຝຶກອົບຮົມ</title>
+<meta name="ldb-exec-mode" content="false">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Lao:wght@500;600;700&family=Noto+Sans+Lao:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -4190,6 +4191,11 @@ function initSidebarToggle(){
   });
 }
 
+var EXEC_MODE = (function(){
+  var m = document.querySelector('meta[name="ldb-exec-mode"]');
+  return !!m && m.getAttribute('content') === 'true';
+})();
+
 var state = {
   dataset: 'tracking',      // 'tracking' | 'plan'
   typeFilter: 'all',
@@ -5971,27 +5977,30 @@ function renderYearBar(){
   el.innerHTML = ys.map(function(y){
     return '<button class="ybtn" data-y="'+esc(y)+'" aria-pressed="'+(state.view==='year' && state.year===y)+'">'+'ພາບລວມ'+'</button>';
   }).join('') +
+  (EXEC_MODE ? '' :
   '<button class="ybtn ybtn-staff" data-y="__staff__" aria-pressed="'+(state.view==='staff')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>'+
-      'ຂໍ້ມູນພະນັກງານ</button>' +
+      'ຂໍ້ມູນພະນັກງານ</button>') +
   '<button class="ybtn ybtn-report" data-y="__report__" aria-pressed="'+(state.view==='report')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>'+
       'ຕິດຕາມຫົວຂໍ້ຝຶກປະຈຳເດືອນ</button>' +
+  (EXEC_MODE ? '' :
   '<button class="ybtn ybtn-dept" data-y="__dept__" aria-pressed="'+(state.view==='dept')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 13h.01M14 9h.01M14 13h.01M9 21v-4h6v4"/></svg>'+
-      'ລາຍຝ່າຍ/ສາຂາ</button>' +
+      'ລາຍຝ່າຍ/ສາຂາ</button>') +
   '<button class="ybtn ybtn-poster" data-y="__poster__" aria-pressed="'+(state.view==='poster')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>'+
       'ລາຍງານຄະນະຜູ້ບໍລິຫານ</button>' +
+  (EXEC_MODE ? '' :
   '<button class="ybtn ybtn-qr" data-y="__qr__" aria-pressed="'+(state.view==='qr')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM14 20h3M20 14v3M20 20v.01"/></svg>'+
       'ສ້າງ QR ລົງທະບຽນ</button>' +
   '<button class="ybtn ybtn-ai" data-y="__ai__" aria-pressed="'+(state.view==='ai')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+
-      'ຖາມ AI</button>' +
-  (ys.length>1 ? '<button class="ybtn ybtn-multi" data-y="__multi__" aria-pressed="'+(state.view==='multi')+'">'+
+      'ຖາມ AI</button>') +
+  (EXEC_MODE ? '' : (ys.length>1 ? '<button class="ybtn ybtn-multi" data-y="__multi__" aria-pressed="'+(state.view==='multi')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'+
-      'ສະຫຼຸບລາຍປີ</button>' : '');
+      'ສະຫຼຸບລາຍປີ</button>' : ''));
   el.querySelectorAll('.ybtn').forEach(function(b){
     b.addEventListener('click', function(){
       var y = b.getAttribute('data-y');
@@ -8239,6 +8248,7 @@ function renderAll(){
   if(!ys.length){ return; }
   if(ys.indexOf(state.year)===-1) state.year = ys[ys.length-1];
   if(state.view==='multi' && ys.length<2) state.view='year';
+  if(EXEC_MODE && ['staff','dept','qr','ai','multi'].indexOf(state.view)!==-1) state.view='year';
 
   RAW = yearRaw(state.year);
   renderYearBar();
