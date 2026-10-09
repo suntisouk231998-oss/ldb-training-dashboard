@@ -2,7 +2,7 @@ name: Sync Dashboard Data
 
 # Pulls the latest Google Sheet export, rebuilds index.html from
 # dashboard.html + the fresh data, and commits the result straight to
-# main -- entirely on GitHub's own infrastructure, with GitHub's own
+# main — entirely on GitHub's own infrastructure, with GitHub's own
 # built-in GITHUB_TOKEN (no personal access token needed).
 #
 # Runs automatically every day, and can also be run on demand any time
@@ -36,7 +36,8 @@ jobs:
 
       - name: Download latest Google Sheet export
         run: |
-          curl -L -f --retry 3 -o sheet_export.xlsx "https://docs.google.com/spreadsheets/d/1xuayUZ3NrVcnPhaDT-RDcogqPE2zj-LQWMxkx8mkRuc/export?format=xlsx"
+          curl -L -f --retry 3 -o sheet_export.xlsx \
+            "https://docs.google.com/spreadsheets/d/1xuayUZ3NrVcnPhaDT-RDcogqPE2zj-LQWMxkx8mkRuc/export?format=xlsx"
           ls -la sheet_export.xlsx
 
       - name: Sync data and rebuild index.html
@@ -46,9 +47,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html archive.json
+          git add index.html archive.json exec/index.html
           if git diff --cached --quiet; then
-            echo "No data changes -- nothing to commit."
+            echo "No data changes — nothing to commit."
           else
             git commit -m "Auto-sync dashboard data ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
             git push
