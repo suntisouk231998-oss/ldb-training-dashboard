@@ -27,10 +27,32 @@ const ROOT = path.join(__dirname, '..');
 
   await page.waitForSelector('#fileInput', { timeout: 15000 });
 
-  // start from a clean localStorage so we don't merge with a stale profile
-  await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+  // Seed localStorage from the archive.json already committed in the repo
+  // (if any) before uploading the fresh sheet, instead of starting from a
+  // clean slate. archive.json can hold more than just the current year —
+  // e.g. a historical year added by hand — and those other years must
+  // survive every future daily auto-sync. Uploading the current year's
+  // sheet on top only replaces that one year's entry (ARCHIVE.years[year]),
+  // same as a person clicking "ເພີ່ມ / ອັບເດດຂໍ້ມູນປີ" in the live dashboard.
+  const existingArchivePath = path.join(ROOT, 'archive.json');
+  const existingArchive = fs.existsSync(existingArchivePath)
+    ? fs.readFileSync(existingArchivePath, 'utf8')
+    : null;
+  await page.evaluate((txt) => {
+    try {
+      localStorage.clear();
+      if (txt) localStorage.setItem('ldb_training_dashboard_v2', txt);
+    } catch (e) {}
+  }, existingArchive);
   await page.reload();
   await page.waitForSelector('#fileInput', { timeout: 15000 });
+  if (existingArchive) {
+    const preYears = await page.evaluate(() => {
+      try { return Object.keys(JSON.parse(localStorage.getItem('ldb_training_dashboard_v2')).years); }
+      catch (e) { return []; }
+    });
+    console.log('[info] years carried over from existing archive.json:', preYears);
+  }
 
   const xlsxPath = path.join(ROOT, 'sheet_export.xlsx');
   const xlsxBuffer = fs.readFileSync(xlsxPath);
