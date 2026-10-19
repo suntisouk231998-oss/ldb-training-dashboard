@@ -423,6 +423,23 @@
   .chip[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); border-color:transparent;
     box-shadow: 0 0 var(--glow-blur) color-mix(in srgb, var(--accent) var(--glow-op), transparent); }
   .chip .n{ opacity:.75; margin-left:3px; }
+  /* ---------- month-range picker (shared by every month filter) ---------- */
+  .mr-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .mr-tag{ font-size:12px; font-weight:700; color:var(--text-2); }
+  .mr-select{
+    font:inherit; font-size:12.5px; padding:6px 10px; border-radius:var(--radius-md);
+    border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-1);
+  }
+  .mr-select:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .mr-dash{ font-size:12px; color:var(--text-muted); }
+  .mr-apply, .mr-clear{
+    appearance:none; font:inherit; cursor:pointer; font-size:12.5px; font-weight:700;
+    border-radius:var(--radius-md); padding:6px 13px; transition:.15s ease;
+  }
+  .mr-apply{ border:1px solid transparent; background:var(--accent); color:var(--accent-ink); }
+  .mr-apply:hover{ filter:brightness(1.06); }
+  .mr-clear{ border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-2); }
+  .mr-clear:hover{ background:var(--surface-hover); color:var(--text-1); }
   .tabs{ display:flex; gap:4px; background:var(--surface-2); padding:4px; border-radius:999px; border:1px solid var(--border); width:max-content; }
   .tab{ appearance:none; border:none; background:transparent; color:var(--text-2); font:inherit; font-weight:700; font-size:13px;
         padding:8px 16px; border-radius:999px; cursor:pointer; }
@@ -1449,7 +1466,8 @@
           </div>
         </div>
       </div>
-      <div class="chiprow" id="repMonthChips" role="group" aria-label="ເລືອກເດືອນ" style="margin-bottom:16px"></div>
+      <div class="chiprow" id="repMonthChips" role="group" aria-label="ເລືອກເດືອນ" style="margin-bottom:8px"></div>
+      <div class="mr-row" id="repMonthRange" role="group" aria-label="ຊ່ວງເດືອນ" style="margin-bottom:16px"></div>
       <div class="spot-stats" id="repStats"></div>
 
       <div class="sec-head">
@@ -1508,7 +1526,8 @@
           </div>
         </div>
       </div>
-      <div class="chiprow" id="deptMonthChips" role="group" aria-label="ເລືອກເດືອນ" style="margin-bottom:16px"></div>
+      <div class="chiprow" id="deptMonthChips" role="group" aria-label="ເລືອກເດືອນ" style="margin-bottom:8px"></div>
+      <div class="mr-row" id="deptMonthRange" role="group" aria-label="ຊ່ວງເດືອນ" style="margin-bottom:16px"></div>
 
       <div id="deptList"></div>
     </section>
@@ -1683,6 +1702,7 @@
         </button>
       </div>
       <div class="monthnav" id="monthNav" role="group" aria-label="ເລືອກເດືອນ"></div>
+      <div class="mr-row" id="monthRangePicker" role="group" aria-label="ຊ່ວງເດືອນ"></div>
     </section>
 
     <section class="card col-12" id="spotlight" style="display:none" aria-live="polite"></section>
@@ -4201,28 +4221,91 @@ var state = {
   typeFilter: 'all',
   search: '',
   heatType: 'all',
-  month: -1,                // -1 = whole year, else 0..11
+  month: -1,                // -1 = whole year, else 0..11 ("from" month when monthTo is set)
+  monthTo: null,            // null = single month, else 0..11 — range end, paired with state.month
   quarter: null,            // null = whole year, else 0..3 (mutually exclusive with month)
   spotView: 'track',        // 'track' | 'plan' inside the spotlight
   reportMonth: -1,          // month picker on the one-page report, independent of state.month
+  reportMonthTo: null,      // range end paired with state.reportMonth
   deptMonth: -1,            // month picker on the dept/branch detail page, independent of state.month
+  deptMonthTo: null,        // range end paired with state.deptMonth
   posterMonth: -1,          // poster page's own scope, independent of state.month/reportMonth/deptMonth
+  posterMonthTo: null,      // range end paired with state.posterMonth
   posterQuarter: null,      // null = whole year, else 0..3 (mutually exclusive with posterMonth)
   posterZoom: 1             // 0.7..1.5 — CSS `zoom` factor applied to #posterBody only
 };
 
+/* ---- month-range helpers ----
+   Every month picker in the dashboard (main tracking tab, exec report, dept
+   detail, poster) stores a "from" month (-1 = whole year, else 0..11) plus an
+   optional "to" month (null = single month, else 0..11, order-independent).
+   These helpers turn that pair into the -1 | [months] convention the scope
+   functions below (and the quarter feature before them) already expect. */
+function monthRangeArr(lo, hi){
+  var a = []; for(var i=lo; i<=hi; i++) a.push(i); return a;
+}
+// Returns -1 (whole year) or an array of month indices (length 1 for a single month).
+function effMonths(from, to){
+  if(from===-1) return -1;
+  if(to!=null && to!==from) return monthRangeArr(Math.min(from,to), Math.max(from,to));
+  return [from];
+}
+// Human label: "ເດືອນມັງກອນ" (single) or "ເດືອນມັງກອນ - ເດືອນມີນາ" (range), or null for whole year.
+function monthRangeLabel(from, to){
+  var e = effMonths(from, to);
+  if(e===-1) return null;
+  return e.length>1 ? ('ເດືອນ'+MONTHS_LAO[e[0]]+' - ເດືອນ'+MONTHS_LAO[e[e.length-1]]) : ('ເດືອນ'+MONTHS_LAO[e[0]]);
+}
+// Generic "ຈາກເດືອນ / ຫາເດືອນ" picker, reused by every month filter on the
+// page. Renders two <select> + apply/clear into #id, reading/writing
+// state[fromKey]/state[toKey], then calls onChange() to re-render that tab.
+function renderMonthRangePicker(id, fromKey, toKey, onChange){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var curFrom = state[fromKey], curTo = state[toKey];
+  var active = curFrom!==-1 && curTo!=null && curTo!==curFrom;
+  var fromSel = curFrom===-1 ? 0 : curFrom;
+  var toSel = curTo!=null ? curTo : fromSel;
+  var opts = MONTHS_LAO.map(function(nm,i){ return '<option value="'+i+'">'+nm+'</option>'; }).join('');
+  el.innerHTML =
+    '<span class="mr-tag">ຊ່ວງເດືອນ:</span>'+
+    '<select class="mr-select" id="'+id+'From" aria-label="ຈາກເດືອນ">'+opts+'</select>'+
+    '<span class="mr-dash">ຫາ</span>'+
+    '<select class="mr-select" id="'+id+'To" aria-label="ຫາເດືອນ">'+opts+'</select>'+
+    '<button type="button" class="mr-apply" id="'+id+'Apply">ນຳໃຊ້ຊ່ວງ</button>'+
+    (active? '<button type="button" class="mr-clear" id="'+id+'Clear">ລ້າງຊ່ວງ</button>' : '');
+  var fromEl = document.getElementById(id+'From'), toEl = document.getElementById(id+'To');
+  fromEl.value = fromSel; toEl.value = toSel;
+  document.getElementById(id+'Apply').addEventListener('click', function(){
+    var f = +fromEl.value, t = +toEl.value;
+    state[fromKey] = Math.min(f,t);
+    state[toKey] = Math.max(f,t);
+    onChange();
+  });
+  var clearBtn = document.getElementById(id+'Clear');
+  if(clearBtn) clearBtn.addEventListener('click', function(){
+    state[fromKey] = -1; state[toKey] = null;
+    onChange();
+  });
+}
+
 /* The dashboard has exactly one scope at a time: the whole year, one month,
-   or one quarter. Everything below reads it through these three helpers. */
+   a month range, or one quarter. Everything below reads it through these
+   three helpers. */
 function scopeMonths(){
   if(state.quarter!==null) return QUARTER_MONTHS[state.quarter];
-  if(state.month!==-1) return [state.month];
+  if(state.month!==-1){
+    var e = effMonths(state.month, state.monthTo);
+    return e===-1 ? null : e;
+  }
   return null;
 }
 function scopeActive(){ return state.quarter!==null || state.month!==-1; }
 function rowInScope(item){
-  if(state.quarter!==null) return qOf(item)===state.quarter;
-  if(state.month!==-1) return MONTHS_LAO.indexOf(String(item.month||'').trim())===state.month;
-  return true;
+  var months = scopeMonths();
+  if(!months) return true;
+  var idx = MONTHS_LAO.indexOf(String(item.month||'').trim());
+  return months.indexOf(idx)!==-1;
 }
 
 /* ---------------- utilities ---------------- */
@@ -5200,6 +5283,7 @@ function buildModel(raw){
 /* ---------------- month navigator ---------------- */
 function renderMonthNav(m){
   var el = document.getElementById('monthNav');
+  var sms = scopeMonths() || [];
   var html = '<button class="mbtn mbtn-all" data-m="-1" aria-pressed="'+(state.month===-1)+'" title="ພາບລວມທັງປີ">'+
       '<span class="mb-name">ທັງປີ</span>'+
       '<span class="mb-en">2026</span>'+
@@ -5210,7 +5294,7 @@ function renderMonthNav(m){
   html += m.monthStats.map(function(ms){
     var w = Math.round((ms.tracked/m.maxMonthTracked)*100);
     var quiet = ms.tracked===0 && ms.planned===0;
-    return '<button class="mbtn'+(quiet?' quiet':'')+'" data-m="'+ms.idx+'" aria-pressed="'+(state.month===ms.idx)+'"'+
+    return '<button class="mbtn'+(quiet?' quiet':'')+'" data-m="'+ms.idx+'" aria-pressed="'+(state.quarter===null && sms.indexOf(ms.idx)!==-1)+'"'+
       ' title="'+MONTHS_LAO[ms.idx]+' — ຝຶກຕົວຈິງ '+ms.tracked+' ຄັ້ງ, ຕາມແຜນ '+ms.planned+' ຫົວຂໍ້">'+
       '<span class="mb-name">'+MONTHS_LAO[ms.idx]+'</span>'+
       '<span class="mb-en">'+MONTHS_EN[ms.idx]+'</span>'+
@@ -5223,11 +5307,16 @@ function renderMonthNav(m){
   el.querySelectorAll('.mbtn').forEach(function(btn){
     btn.addEventListener('click', function(){
       var mm = +btn.getAttribute('data-m');
-      var same = (state.month===mm && mm!==-1);
+      var same = (state.month===mm && mm!==-1 && state.monthTo==null);
       state.month = same ? -1 : mm;
+      state.monthTo = null;
       if(state.month!==-1) state.quarter = null;
       applyMonth(m, !same);
     });
+  });
+  renderMonthRangePicker('monthRangePicker', 'month', 'monthTo', function(){
+    state.quarter = null;
+    applyMonth(m, true);
   });
 }
 
@@ -5258,7 +5347,7 @@ function renderQuarters(m){
       var qq = +btn.getAttribute('data-q');
       var same = (state.quarter===qq);
       state.quarter = same ? null : qq;
-      if(state.quarter!==null) state.month = -1;
+      if(state.quarter!==null){ state.month = -1; state.monthTo = null; }
       applyMonth(m, !same);
     });
   });
@@ -5266,7 +5355,7 @@ function renderQuarters(m){
 
 function scopeLabel(){
   if(state.quarter!==null) return 'ໄຕມາດ '+QUARTERS[state.quarter]+' ('+QUARTER_RANGE[state.quarter]+')';
-  if(state.month!==-1) return 'ເດືອນ'+MONTHS_LAO[state.month];
+  if(state.month!==-1) return monthRangeLabel(state.month, state.monthTo) || '';
   return '';
 }
 
@@ -5567,8 +5656,9 @@ function renderBudgetChart(m){
     hit.addEventListener('mouseleave', hideTip);
     hit.addEventListener('click', function(){
       var i = +hit.getAttribute('data-i');
-      var same = (state.month===i);
+      var same = (state.month===i && state.monthTo==null);
       state.month = same ? -1 : i;
+      state.monthTo = null;
       if(state.month!==-1) state.quarter = null;
       hideTip();
       applyMonth(m, !same);
@@ -5676,8 +5766,9 @@ function renderLeaderboard(m){
   el.querySelectorAll('.lb-row').forEach(function(b){
     b.addEventListener('click', function(){
       var mm = +b.getAttribute('data-m');
-      var same = (state.month===mm);
+      var same = (state.month===mm && state.monthTo==null);
       state.month = same ? -1 : mm;
+      state.monthTo = null;
       if(state.month!==-1) state.quarter = null;
       applyMonth(m, !same);
     });
@@ -6011,7 +6102,7 @@ function renderYearBar(){
       else if(y==='__poster__'){ state.view='poster'; }
       else if(y==='__qr__'){ state.view='qr'; }
       else if(y==='__ai__'){ state.view='ai'; }
-      else { state.view='year'; state.year=y; state.month=-1; state.quarter=null; }
+      else { state.view='year'; state.year=y; state.month=-1; state.monthTo=null; state.quarter=null; }
       renderAll();
       window.scrollTo({top:0, behavior:'smooth'});
     });
@@ -6595,12 +6686,20 @@ function renderReportCalendar(m, mi){
     el.innerHTML = '<div class="tp-empty">ເລືອກເດືອນໃດໜຶ່ງເພື່ອເບິ່ງປະຕິທິນຕິດຕາມການຝຶກອົບຮົມ</div>';
     return;
   }
+  // a calendar grid only ever shows one month — when the scope is a range,
+  // show the range's first month with a note rather than silently picking
+  // one or breaking on the Date math below
+  var monthIdx = Array.isArray(mi) ? mi[0] : mi;
   var year = parseInt(state.year, 10);
-  if(descEl) descEl.textContent = 'ຄູຝຶກ-ຫົວຂໍ້ ຂອງແຕ່ລະວັນ ໃນເດືອນ'+MONTHS_LAO[mi]+' '+state.year+' — ຮຽງຕາມວັນທີ່ຈັດຕົວຈິງ';
+  if(Array.isArray(mi) && mi.length>1){
+    if(descEl) descEl.textContent = 'ປະຕິທິນສະແດງໄດ້ສະເພາະເດືອນດຽວ — ກຳລັງສະແດງເດືອນທຳອິດຂອງຊ່ວງ: '+MONTHS_LAO[monthIdx]+' '+state.year;
+  } else if(descEl){
+    descEl.textContent = 'ຄູຝຶກ-ຫົວຂໍ້ ຂອງແຕ່ລະວັນ ໃນເດືອນ'+MONTHS_LAO[monthIdx]+' '+state.year+' — ຮຽງຕາມວັນທີ່ຈັດຕົວຈິງ';
+  }
 
-  var events = calendarEventsForMonth(m, year, mi);
-  var daysInMonth = new Date(year, mi+1, 0).getDate();
-  var firstDow = new Date(year, mi, 1).getDay(); // 0=Sun..6=Sat
+  var events = calendarEventsForMonth(m, year, monthIdx);
+  var daysInMonth = new Date(year, monthIdx+1, 0).getDate();
+  var firstDow = new Date(year, monthIdx, 1).getDay(); // 0=Sun..6=Sat
   var leadBlanks = (firstDow===0) ? 6 : (firstDow-1); // Monday-first offset
 
   var cells = [];
@@ -6661,23 +6760,30 @@ function renderReportView(m){
 
   if(state.reportMonth!==-1 && !m.monthStats[state.reportMonth]) state.reportMonth = -1;
 
+  var mi = effMonths(state.reportMonth, state.reportMonthTo); // -1 | [months]
+  var miSet = mi===-1 ? [] : mi;
+
   var chips = [{k:-1,l:'ທັງປີ'}].concat(MONTHS_LAO.map(function(nm,i){ return {k:i,l:nm}; }));
   var chipEl = document.getElementById('repMonthChips');
   chipEl.innerHTML = chips.map(function(c){
-    return '<button class="chip" data-m="'+c.k+'" aria-pressed="'+(state.reportMonth===c.k)+'">'+c.l+'</button>';
+    var pressed = c.k===-1 ? state.reportMonth===-1 : miSet.indexOf(c.k)!==-1;
+    return '<button class="chip" data-m="'+c.k+'" aria-pressed="'+pressed+'">'+c.l+'</button>';
   }).join('');
   chipEl.querySelectorAll('.chip').forEach(function(b){
     b.addEventListener('click', function(){
       state.reportMonth = +b.getAttribute('data-m');
+      state.reportMonthTo = null;
       renderReportView(m);
     });
   });
+  renderMonthRangePicker('repMonthRange', 'reportMonth', 'reportMonthTo', function(){ renderReportView(m); });
 
-  var sc = reportScopeStats(m, state.reportMonth);
-  var scopeLabel = state.reportMonth===-1 ? 'ພາບລວມທັງປີ '+state.year : 'ເດືອນ'+MONTHS_LAO[state.reportMonth]+' '+state.year;
+  var sc = reportScopeStats(m, mi);
+  var rangeLbl = monthRangeLabel(state.reportMonth, state.reportMonthTo);
+  var scopeLabel = state.reportMonth===-1 ? 'ພາບລວມທັງປີ '+state.year : rangeLbl+' '+state.year;
   document.getElementById('repScopeDesc').textContent = 'ກຳລັງເບິ່ງ: '+scopeLabel;
 
-  var planWord = state.reportMonth===-1 ? 'ຂອງແຜນປີນີ້' : 'ຂອງແຜນເດືອນນີ້';
+  var planWord = state.reportMonth===-1 ? 'ຂອງແຜນປີນີ້' : 'ຂອງແຜນຊ່ວງນີ້';
   document.getElementById('repStats').innerHTML = [
     {l:'ຫົວຂໍ້ໃນແຜນ', v:fmtInt(sc.planned), s:'ຫົວຂໍ້'},
     {l:'ຈັດຕັ້ງປະຕິບັດແລ້ວ', v:fmtInt(sc.done), s:fmtPct(sc.planned? sc.done/sc.planned:0)+' '+planWord},
@@ -6687,18 +6793,18 @@ function renderReportView(m){
     return '<div class="spot-stat"><div class="l">'+x.l+'</div><div class="v">'+x.v+'</div><div class="s">'+x.s+'</div></div>';
   }).join('');
 
-  renderReportCalendar(m, state.reportMonth);
+  renderReportCalendar(m, mi);
 
-  document.getElementById('repPieDesc').textContent = 'ສັດສ່ວນ'+(state.reportMonth===-1? 'ຂອງທັງປີ ':'ຂອງເດືອນນີ້ ')+state.year+' — ຕາມຂອບເຂດທີ່ເລືອກຢູ່ເທິງ';
-  renderPieCharts(m, state.reportMonth);
+  document.getElementById('repPieDesc').textContent = 'ສັດສ່ວນ'+(state.reportMonth===-1? 'ຂອງທັງປີ ':'ຂອງຊ່ວງນີ້ ')+state.year+' — ຕາມຂອບເຂດທີ່ເລືອກຢູ່ເທິງ';
+  renderPieCharts(m, mi);
 
   // departments with a plan and/or an actual delivered session in this
   // scope — a dept can appear with 0 delivered (still in plan) or 0 planned
   // (an out-of-plan session), so the table shows both sides side by side
-  var rows = deptRowsForScope(m, state.reportMonth).filter(function(r){ return r.topics>0 || r.planCount>0; });
+  var rows = deptRowsForScope(m, mi).filter(function(r){ return r.topics>0 || r.planCount>0; });
   document.getElementById('repDeptDesc').textContent = state.reportMonth===-1
     ? 'ຈັດຕົວຈິງທຽບກັບແຜນ ແຍກຕາມພາກສ່ວນ ໃນປີ '+state.year+' — ຮຽງຕາມຈຳນວນທີ່ຈັດຕົວຈິງ'
-    : 'ຈັດຕົວຈິງທຽບກັບແຜນ ແຍກຕາມພາກສ່ວນ ໃນເດືອນ'+MONTHS_LAO[state.reportMonth]+' '+state.year+' — ຮຽງຕາມຈຳນວນທີ່ຈັດຕົວຈິງ';
+    : 'ຈັດຕົວຈິງທຽບກັບແຜນ ແຍກຕາມພາກສ່ວນ ໃນ'+rangeLbl+' '+state.year+' — ຮຽງຕາມຈຳນວນທີ່ຈັດຕົວຈິງ';
   var tbl = document.getElementById('repDeptTable');
   if(!rows.length){
     tbl.innerHTML = '<tbody><tr class="empty-row"><td>ບໍ່ມີແຜນ ຫຼື ການຈັດຝຶກອົບຮົມໃນຂອບເຂດນີ້</td></tr></tbody>';
@@ -6724,15 +6830,16 @@ function renderReportView(m){
    exactly as the month spotlight does, scoped by department instead of
    by month. */
 function deptScopeRows(m, mi, dept){
+  var months = mi===-1 ? null : (Array.isArray(mi) ? mi : [mi]);
   var trk = m.raw.tracking.filter(function(t){
     if(normDept(t.dept)!==dept) return false;
-    if(mi===-1) return true;
-    return MONTHS_LAO.indexOf(String(t.month||'').trim())===mi;
+    if(!months) return true;
+    return months.indexOf(MONTHS_LAO.indexOf(String(t.month||'').trim()))!==-1;
   });
   var pln = m.raw.plan.filter(function(p){
     if(normDept(p.dept)!==dept) return false;
-    if(mi===-1) return true;
-    return MONTHS_LAO.indexOf(String(p.month||'').trim())===mi;
+    if(!months) return true;
+    return months.indexOf(MONTHS_LAO.indexOf(String(p.month||'').trim()))!==-1;
   });
   return { trk:trk, pln:pln };
 }
@@ -6802,23 +6909,27 @@ function renderDeptDetailView(m){
   if(yEl) yEl.textContent = state.year;
 
   if(state.deptMonth!==-1 && !m.monthStats[state.deptMonth]) state.deptMonth = -1;
-  var mi = state.deptMonth;
+  var mi = effMonths(state.deptMonth, state.deptMonthTo); // -1 | [months]
+  var miSet = mi===-1 ? [] : mi;
 
   var chips = [{k:-1,l:'ທັງປີ'}].concat(MONTHS_LAO.map(function(nm,i){ return {k:i,l:nm}; }));
   var chipEl = document.getElementById('deptMonthChips');
   if(chipEl){
     chipEl.innerHTML = chips.map(function(c){
-      return '<button class="chip" data-m="'+c.k+'" aria-pressed="'+(mi===c.k)+'">'+c.l+'</button>';
+      var pressed = c.k===-1 ? state.deptMonth===-1 : miSet.indexOf(c.k)!==-1;
+      return '<button class="chip" data-m="'+c.k+'" aria-pressed="'+pressed+'">'+c.l+'</button>';
     }).join('');
     chipEl.querySelectorAll('.chip').forEach(function(b){
       b.addEventListener('click', function(){
         state.deptMonth = +b.getAttribute('data-m');
+        state.deptMonthTo = null;
         renderDeptDetailView(m);
       });
     });
   }
+  renderMonthRangePicker('deptMonthRange', 'deptMonth', 'deptMonthTo', function(){ renderDeptDetailView(m); });
 
-  var scopeLbl = mi===-1 ? 'ທັງປີ '+state.year : 'ເດືອນ'+MONTHS_LAO[mi]+' '+state.year;
+  var scopeLbl = mi===-1 ? 'ທັງປີ '+state.year : monthRangeLabel(state.deptMonth, state.deptMonthTo)+' '+state.year;
   var descEl = document.getElementById('deptScopeDesc');
   if(descEl) descEl.textContent = 'ກຳລັງເບິ່ງ: '+scopeLbl;
 
@@ -6874,12 +6985,12 @@ function renderDeptDetailView(m){
    deptMonth, same -1 | [months] convention the shared helpers expect */
 function posterScopeMi(){
   if(state.posterQuarter!==null) return QUARTER_MONTHS[state.posterQuarter];
-  if(state.posterMonth!==-1) return [state.posterMonth];
+  if(state.posterMonth!==-1) return effMonths(state.posterMonth, state.posterMonthTo);
   return -1;
 }
 function posterScopeLabel(){
   if(state.posterQuarter!==null) return 'ໄຕມາດ '+QUARTERS[state.posterQuarter]+' ('+QUARTER_RANGE[state.posterQuarter]+') '+state.year;
-  if(state.posterMonth!==-1) return 'ເດືອນ'+MONTHS_LAO[state.posterMonth]+' '+state.year;
+  if(state.posterMonth!==-1) return monthRangeLabel(state.posterMonth, state.posterMonthTo)+' '+state.year;
   return 'ທັງປີ '+state.year;
 }
 function posterScopeMonths(mi){
@@ -7157,9 +7268,12 @@ function posterScopeBar(){
       return '<button class="chip pv-scope-chip" data-q="'+i+'" aria-pressed="'+(state.posterQuarter===i)+'">'+q+' <span class="n">'+QUARTER_RANGE[i]+'</span></button>';
     }).join('')+'</div>';
   } else if(mode==='month'){
+    var miSet0 = effMonths(state.posterMonth, state.posterMonthTo);
+    miSet0 = miSet0===-1 ? [] : miSet0;
     sub = '<div class="chiprow pv-scope-chips">'+MONTHS_LAO.map(function(nm,i){
-      return '<button class="chip pv-scope-chip" data-m="'+i+'" aria-pressed="'+(state.posterMonth===i)+'">'+nm+'</button>';
-    }).join('')+'</div>';
+      return '<button class="chip pv-scope-chip" data-m="'+i+'" aria-pressed="'+(miSet0.indexOf(i)!==-1)+'">'+nm+'</button>';
+    }).join('')+'</div>'+
+    '<div class="mr-row" id="posterMonthRange"></div>';
   }
   return '<div class="pv-scope-bar">'+tabs+sub+'</div>';
 }
@@ -7365,19 +7479,22 @@ function renderPosterView(m){
   el.querySelectorAll('.pv-scope-tab').forEach(function(b){
     b.addEventListener('click', function(){
       var mode = b.getAttribute('data-mode');
-      if(mode==='year'){ state.posterQuarter=null; state.posterMonth=-1; }
-      else if(mode==='quarter'){ state.posterQuarter = state.posterQuarter!==null? state.posterQuarter:0; state.posterMonth=-1; }
+      if(mode==='year'){ state.posterQuarter=null; state.posterMonth=-1; state.posterMonthTo=null; }
+      else if(mode==='quarter'){ state.posterQuarter = state.posterQuarter!==null? state.posterQuarter:0; state.posterMonth=-1; state.posterMonthTo=null; }
       else if(mode==='month'){ state.posterMonth = state.posterMonth!==-1? state.posterMonth:0; state.posterQuarter=null; }
       renderPosterView(m);
     });
   });
   el.querySelectorAll('.pv-scope-chip').forEach(function(b){
     b.addEventListener('click', function(){
-      if(b.hasAttribute('data-q')){ state.posterQuarter = +b.getAttribute('data-q'); state.posterMonth=-1; }
-      else { state.posterMonth = +b.getAttribute('data-m'); state.posterQuarter=null; }
+      if(b.hasAttribute('data-q')){ state.posterQuarter = +b.getAttribute('data-q'); state.posterMonth=-1; state.posterMonthTo=null; }
+      else { state.posterMonth = +b.getAttribute('data-m'); state.posterMonthTo=null; state.posterQuarter=null; }
       renderPosterView(m);
     });
   });
+  if(document.getElementById('posterMonthRange')){
+    renderMonthRangePicker('posterMonthRange', 'posterMonth', 'posterMonthTo', function(){ renderPosterView(m); });
+  }
 
   // quick-question chips (panel 7): purely client-side, computed instantly
   // from qaPairs — no network/AI call, this page has none
@@ -8344,7 +8461,7 @@ function nowStr(){
 
 /* ---------------- events ---------------- */
 document.getElementById('scopePill').addEventListener('click', function(){
-  state.month = -1; state.quarter = null;
+  state.month = -1; state.monthTo = null; state.quarter = null;
   applyMonth(MODEL, false);
 });
 document.getElementById('tabTracking').addEventListener('click', function(){
@@ -8404,7 +8521,7 @@ document.getElementById('fileInput').addEventListener('change', function(e){
         newRaw.year = typed;
         ARCHIVE.years[typed] = newRaw;
         ARCHIVE.meta[typed] = { label:'ອັບໂຫລດ: '+file.name, when: nowStr(), whenTS: Date.now() };
-        state.year = typed; state.view='year'; state.month=-1; state.quarter=null;
+        state.year = typed; state.view='year'; state.month=-1; state.monthTo=null; state.quarter=null;
         persistArchive();
         setUpdated();
         renderAll();
@@ -8544,7 +8661,7 @@ document.getElementById('resetBtn').addEventListener('click', function(){
     if(!ok) return;
     ARCHIVE = JSON.parse(JSON.stringify(SEED));
     var ys = archiveYears();
-    state.year = ys[ys.length-1]; state.view='year'; state.month=-1; state.quarter=null;
+    state.year = ys[ys.length-1]; state.view='year'; state.month=-1; state.monthTo=null; state.quarter=null;
     persistArchive();
     setUpdated();
     renderAll();
