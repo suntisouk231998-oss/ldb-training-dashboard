@@ -4381,6 +4381,7 @@ function qOf(item){
 }
 function isCompleted(s){ return String(s||'').trim().toLowerCase().indexOf('complet')===0; }
 function isCancelled(s){ return String(s||'').trim().toLowerCase().indexOf('cancel')===0; }
+function isWaiting(s){ var v = String(s||'').trim().toLowerCase(); return v.indexOf('wait')===0 || v.indexOf('pending')===0; }
 var TYPE_BADGE_CLASS = { inplan:'badge-inplan', outplan:'badge-outplan', linked:'badge-linked', other:'badge-neutral' };
 var STATUS_COLOR = {
   'Completed':'var(--good)', 'On-Going':'var(--warning)', 'On-going':'var(--warning)',
@@ -7028,6 +7029,27 @@ function planExecutionBreakdown(m, mi){
   return { planned:sc.planned, tracked:tracked, done:done, open:open, cancelled:cancelled };
 }
 
+/* status breakdown across EVERY tracked training in scope (in-plan, out-of-plan
+   and linked alike — unlike planExecutionBreakdown above, which only looks at
+   the in-plan subset). Backs the "ສຳເລັດ / ກຳລັງດຳເນີນ / ລໍຖ້າ" line on the
+   poster's headline KPI tile so that count visibly adds up to the big
+   "ຝຶກຕົວຈິງທັງໝົດ" number next to it. A row whose status is cancelled, or
+   blank/unrecognised (older archived years carry no status at all), is not
+   double-counted in any of the three — it only shows up in `other`, which the
+   caller may surface or fold away. */
+function trackingStatusBreakdown(m, mi){
+  var rows = scopeTrackingRows(m, mi);
+  var done=0, waiting=0, inprogress=0, cancelled=0, other=0;
+  rows.forEach(function(t){
+    if(isCancelled(t.status)) cancelled++;
+    else if(isCompleted(t.status)) done++;
+    else if(isWaiting(t.status)) waiting++;
+    else if(String(t.status||'').trim()) inprogress++;
+    else other++;
+  });
+  return { total:rows.length, done:done, inprogress:inprogress, waiting:waiting, cancelled:cancelled, other:other };
+}
+
 /* generic "ranked, most → least" bar list — used for both training-format
    and department rankings so the two panels share one look */
 function posterRankedBars(items){
@@ -7289,6 +7311,15 @@ function renderPosterView(m){
   var months = posterScopeMonths(mi);
   var sc = reportScopeStats(m, mi);
   var peb = planExecutionBreakdown(m, mi);
+  var tsb = trackingStatusBreakdown(m, mi);
+  // the headline "ຝຶກຕົວຈິງທັງໝົດ" tile breaks its own number down by status so
+  // the three counts visibly sum to the big number above them; when a scope
+  // carries no status data at all (the 2025 archive was captured before the
+  // sheet tracked status), say so plainly instead of printing three zeroes
+  var statusSub = (tsb.total>0 && tsb.other===tsb.total)
+    ? 'ບໍ່ມີຂໍ້ມູນສະຖານະໃນຂອບເຂດນີ້'
+    : 'ສຳເລັດ '+fmtInt(tsb.done)+' · ກຳລັງດຳເນີນການ '+fmtInt(tsb.inprogress)+' · ລໍຖ້າ '+fmtInt(tsb.waiting)+
+      (tsb.cancelled>0 ? ' · ຍົກເລີກ '+fmtInt(tsb.cancelled) : '');
   var deptRowsAll = deptRowsForScope(m, mi).filter(function(r){ return r.topics>0 || r.planCount>0; });
   var deptRowsRanked = deptRowsAll.filter(function(r){ return r.topics>0; });
   var fmtItems = formatSliceItems(m, mi);
@@ -7297,7 +7328,7 @@ function renderPosterView(m){
 
   var kpis = [
     { icon:'plan', l:'ຫົວຂໍ້ໃນແຜນ', v:fmtInt(sc.planned), u:'ຫົວຂໍ້', s:'ຈັດແລ້ວ '+fmtInt(sc.done)+' ('+fmtPct(sc.planned? sc.done/sc.planned:0)+')' },
-    { icon:'calendar', l:'ຝຶກຕົວຈິງທັງໝົດ', v:fmtInt(sc.tracked), u:'ຄັ້ງ', s:'ໃນແຜນ '+fmtInt(peb.tracked)+' · ຍັງດຳເນີນ '+fmtInt(peb.open) },
+    { icon:'calendar', l:'ຝຶກຕົວຈິງທັງໝົດ', v:fmtInt(sc.tracked), u:'ຄັ້ງ', s:statusSub },
     { icon:'users', l:'ຜູ້ເຂົ້າຮ່ວມ', v:fmtInt(sc.people), u:'ທ່ານ', s:'ຍິງ '+fmtInt(genderItems[0].value)+' · ຊາຍ '+fmtInt(genderItems[1].value) },
     { icon:'wallet', l:'ງົບປະມານຕາມແຜນ', v:fmtMillion(sc.budgetPlan), u:'ກີບ', s:'ຂອງຂອບເຂດ'+label },
     { icon:'spend', l:'ນຳໃຊ້ຕົວຈິງ', v:fmtMillion(sc.budgetActual), u:'ກີບ', s:sc.budgetPlan? (fmtPct(sc.budgetActual/sc.budgetPlan)+' ຂອງແຜນ') : 'ບໍ່ມີແຜນວາງໄວ້' },
