@@ -4184,6 +4184,22 @@ var qrcode = function() {
 
 var MONTHS_EN = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 var MONTHS_LAO = ['ມັງກອນ','ກຸມພາ','ມີນາ','ເມສາ','ພຶດສະພາ','ມິຖຸນາ','ກໍລະກົດ','ສິງຫາ','ກັນຍາ','ຕຸລາ','ພະຈິກ','ທັນວາ'];
+
+/* Lao month names are typed with combining vowel/tone marks (e.g. the ◌ຶ in
+   "ພຶດສະພາ"), and the one typo that keeps slipping into the source sheet is
+   that same mark typed twice in a row ("ພຶຶດສະພາ") — never a valid Lao
+   sequence on its own, just a double keystroke. normMonthKey() collapses any
+   immediately-repeated combining mark before comparing, so a month cell like
+   that still matches its real month instead of silently falling out of every
+   month/quarter/range filter (it would otherwise only show up in an
+   unfiltered "whole year" total, which is how this was first noticed: the
+   same scope showing two different counts depending on whether a month
+   filter was applied). Only touches the comparison key — item.month itself,
+   and anywhere it's displayed verbatim, are left exactly as entered. */
+function normMonthKey(s){ return String(s||'').trim().replace(/(\p{Mn})\1+/gu, '$1'); }
+var MONTHS_LAO_NORM = MONTHS_LAO.map(normMonthKey);
+function monthIdxOf(raw){ return MONTHS_LAO_NORM.indexOf(normMonthKey(raw)); }
+
 var STORAGE_KEY = 'ldb_training_dashboard_v2';
 
 /* The payload embedded at publish time. It is an archive: { v, years, meta }.
@@ -4304,7 +4320,7 @@ function scopeActive(){ return state.quarter!==null || state.month!==-1; }
 function rowInScope(item){
   var months = scopeMonths();
   if(!months) return true;
-  var idx = MONTHS_LAO.indexOf(String(item.month||'').trim());
+  var idx = monthIdxOf(String(item.month||'').trim());
   return months.indexOf(idx)!==-1;
 }
 
@@ -4375,7 +4391,7 @@ var QUARTER_RANGE = ['ມັງກອນ – ມີນາ','ເມສາ – ມ
 /* Month drives the quarter (the two agree throughout the workbook); the
    Quarter column is the fallback for rows that carry no month. */
 function qOf(item){
-  var mi = MONTHS_LAO.indexOf(String(item.month||'').trim());
+  var mi = monthIdxOf(String(item.month||'').trim());
   if(mi!==-1) return Math.floor(mi/3);
   return QUARTERS.indexOf(String(item.quarter||'').trim().toUpperCase());
 }
@@ -4994,7 +5010,7 @@ function buildModel(raw){
     byFormatCount[fmt] = (byFormatCount[fmt]||0)+1;
     totalParticipants.f += num(t.f); totalParticipants.m += num(t.m); totalParticipants.total += num(t.total)||(num(t.f)+num(t.m));
 
-    var mi = MONTHS_LAO.indexOf((t.month||'').trim());
+    var mi = monthIdxOf((t.month||'').trim());
     if(mi===-1) return;
     monthsWithData[mi]=true;
     var dept = normDept(t.dept);
@@ -5010,7 +5026,7 @@ function buildModel(raw){
   // per-department budget column reads the plan sheet's own detail rows —
   // labelled "ຕາມແຜນ" throughout so it is never confused with real spend.
   raw.plan.forEach(function(p){
-    var mi = MONTHS_LAO.indexOf(String(p.month||'').trim());
+    var mi = monthIdxOf(String(p.month||'').trim());
     if(mi===-1) return;
     var dept = normDept(p.dept);
     var pmd = ensureMD(mi, dept);
@@ -5076,11 +5092,11 @@ function buildModel(raw){
   var trackByMonth = {}, planByMonth = {};
   for(var mi0=0; mi0<12; mi0++){ trackByMonth[mi0]=[]; planByMonth[mi0]=[]; }
   raw.tracking.forEach(function(t){
-    var mi = MONTHS_LAO.indexOf(String(t.month||'').trim());
+    var mi = monthIdxOf(String(t.month||'').trim());
     if(mi!==-1) trackByMonth[mi].push(t);
   });
   raw.plan.forEach(function(p){
-    var mi = MONTHS_LAO.indexOf(String(p.month||'').trim());
+    var mi = monthIdxOf(String(p.month||'').trim());
     if(mi!==-1) planByMonth[mi].push(p);
   });
   var monthStats = [];
@@ -6835,12 +6851,12 @@ function deptScopeRows(m, mi, dept){
   var trk = m.raw.tracking.filter(function(t){
     if(normDept(t.dept)!==dept) return false;
     if(!months) return true;
-    return months.indexOf(MONTHS_LAO.indexOf(String(t.month||'').trim()))!==-1;
+    return months.indexOf(monthIdxOf(String(t.month||'').trim()))!==-1;
   });
   var pln = m.raw.plan.filter(function(p){
     if(normDept(p.dept)!==dept) return false;
     if(!months) return true;
-    return months.indexOf(MONTHS_LAO.indexOf(String(p.month||'').trim()))!==-1;
+    return months.indexOf(monthIdxOf(String(p.month||'').trim()))!==-1;
   });
   return { trk:trk, pln:pln };
 }
@@ -8767,7 +8783,7 @@ function aiMonthIndex(v){
   if(v===undefined || v===null || v==='') return -1;
   if(typeof v==='number') return v>=1 && v<=12 ? v-1 : -1;
   var s = String(v).trim();
-  var byName = MONTHS_LAO.indexOf(s);
+  var byName = monthIdxOf(s);
   if(byName!==-1) return byName;
   var n = parseInt(s,10);
   return (n>=1 && n<=12) ? n-1 : -1;
@@ -8781,7 +8797,7 @@ function aiQueryTracking(args){
   var q = String(args.search||'').trim().toLowerCase();
   var mi = aiMonthIndex(args.month);
   var rows = raw.tracking.filter(function(t){
-    if(mi!==-1 && MONTHS_LAO.indexOf(String(t.month||'').trim())!==mi) return false;
+    if(mi!==-1 && monthIdxOf(String(t.month||'').trim())!==mi) return false;
     if(args.dept && normDept(t.dept)!==normDept(args.dept)) return false;
     if(args.type){
       var bucket = normType(t.type);
@@ -8818,7 +8834,7 @@ function aiQueryPlan(args){
   var q = String(args.search||'').trim().toLowerCase();
   var mi = aiMonthIndex(args.month);
   var rows = raw.plan.filter(function(p){
-    if(mi!==-1 && MONTHS_LAO.indexOf(String(p.month||'').trim())!==mi) return false;
+    if(mi!==-1 && monthIdxOf(String(p.month||'').trim())!==mi) return false;
     if(args.quarter!=null && args.quarter!=='' && qOf(p)!==(Number(args.quarter)-1)) return false;
     if(args.dept && normDept(p.dept)!==normDept(args.dept)) return false;
     if(args.status){
