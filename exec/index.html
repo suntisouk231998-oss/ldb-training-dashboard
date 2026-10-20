@@ -6096,7 +6096,7 @@ function renderYearBar(){
   if(!el) return;
   var ys = archiveYears();
   el.innerHTML = ys.map(function(y){
-    return '<button class="ybtn" data-y="'+esc(y)+'" aria-pressed="'+(state.view==='year' && state.year===y)+'">'+'ພາບລວມ'+'</button>';
+    return '<button class="ybtn" data-y="'+esc(y)+'" aria-pressed="'+(state.view==='year' && state.year===y)+'">'+'ພາບລວມ '+esc(y)+'</button>';
   }).join('') +
   '<div class="side-divider" role="separator"></div><div class="sidebar-label">ໜ້າ</div>' +
   (EXEC_MODE ? '' :
