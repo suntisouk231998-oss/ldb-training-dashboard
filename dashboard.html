@@ -3,7 +3,7 @@
 <meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
-<title>ຕິດຕາມການຝຶກອົບຮົມ</title>
+<title>ລະບົບຕິດຕາມການຝຶກອົບຮົມ</title>
 <meta name="ldb-exec-mode" content="false">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,7 +55,7 @@
     --sidebar-text-muted: #7f9ac0;
     --sidebar-active-bg: #1f6fe0;
     --sidebar-active-ink: #ffffff;
-    --topbar-h: 66px;
+    --topbar-h: 72px;
   }
 
   *{box-sizing:border-box;}
@@ -93,19 +93,30 @@
     border-bottom: 1px solid color-mix(in srgb, var(--sidebar-bg) 60%, black);
     box-shadow: var(--shadow-header);
   }
+  header.top::after{
+    content:""; display:block; height:3px;
+    background: linear-gradient(90deg, var(--accent), var(--series-outplan) 55%, var(--accent));
+  }
   .top-inner{
-    max-width:none; margin:0; padding:12px 22px;
-    display:flex; align-items:center; gap:16px; flex-wrap:wrap; min-height:var(--topbar-h);
+    max-width:none; margin:0; padding:11px 22px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap; min-height:calc(var(--topbar-h) - 3px);
   }
-  .brand{ display:flex; align-items:center; gap:12px; margin-right:auto; }
+  .brand{ display:flex; align-items:center; gap:13px; margin-right:auto; }
   .brand-mark{
-    width:38px;height:38px;border-radius:11px;flex:none;
-    background: color-mix(in srgb, #ffffff 16%, transparent);
+    width:44px;height:44px;border-radius:12px;flex:none;
+    background:#ffffff; color:var(--accent);
     display:flex;align-items:center;justify-content:center;
-    border:1px solid color-mix(in srgb, #ffffff 22%, transparent);
+    border:1px solid color-mix(in srgb, #ffffff 40%, transparent);
+    box-shadow:0 2px 7px rgba(5,15,30,.35);
+    overflow:hidden;
   }
-  .brand-text h1{ font-size:18px; line-height:1.25; font-weight:700; color:#fff; }
-  .brand-text .sub{ font-size:12px; color:color-mix(in srgb, #fff 72%, transparent); margin-top:1px;}
+  .brand-mark img{ width:100%; height:100%; object-fit:contain; padding:5px; }
+  .brand-eyebrow{
+    font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+    color: color-mix(in srgb, #fff 62%, transparent); margin-bottom:2px;
+  }
+  .brand-text h1{ font-size:17.5px; line-height:1.2; font-weight:700; color:#fff; font-family:"Noto Serif Lao","Noto Serif",Georgia,serif; }
+  .brand-text .sub{ font-size:12px; color:color-mix(in srgb, #fff 74%, transparent); margin-top:2px;}
   .top-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .updated-pill{
     display:flex; align-items:center; gap:7px;
@@ -147,6 +158,7 @@
   }
   .year-bar{ display:flex; flex-direction:column; gap:3px; }
   .sidebar-spacer{ flex:1; min-height:14px; }
+  .side-divider{ height:1px; margin:11px 4px 8px; background:color-mix(in srgb, #fff 12%, transparent); border:none; }
   .ybtn{
     appearance:none; font:inherit; cursor:pointer; font-size:13.5px; font-weight:600;
     background:transparent; border:1px solid transparent; color:var(--sidebar-text);
@@ -163,7 +175,7 @@
   .ybtn-staff, .ybtn-report, .ybtn-dept, .ybtn-poster, .ybtn-multi{ margin-top:2px; font-size:13.5px; }
   .ybtn-staff svg, .ybtn-report svg, .ybtn-dept svg, .ybtn-poster svg, .ybtn-multi svg{ flex:none; opacity:.85; }
   .ybtn:hover{ background:color-mix(in srgb, #fff 14%, transparent); color:#fff; }
-  .ybtn[aria-pressed="true"]{ background:var(--sidebar-active-bg); color:var(--sidebar-active-ink); border-color:transparent; }
+  .ybtn[aria-pressed="true"]{ background:var(--sidebar-active-bg); color:var(--sidebar-active-ink); border-color:transparent; box-shadow:0 2px 8px -2px rgba(0,0,0,.35); }
   .ybtn[aria-pressed="true"] svg{ opacity:1; }
   .ybtn:focus-visible{ outline:2px solid #fff; outline-offset:1px; }
   .ybtn-multi{}
@@ -1305,11 +1317,12 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
     <div class="brand">
-      <div class="brand-mark" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 17c1.8 1.6 3.6 1.6 5.4 0s3.6-1.6 5.4 0 3.6 1.6 5.4 0 3.6-1.6 5.4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M2 12c1.8 1.6 3.6 1.6 5.4 0s3.6-1.6 5.4 0 3.6 1.6 5.4 0 3.6-1.6 5.4 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".6"/><circle cx="12" cy="6" r="2.4" fill="#fff"/></svg>
+      <div class="brand-mark" id="brandMark" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M19 10v9M9 10v9M15 10v9"/><path d="M3 19h18"/></svg>
       </div>
       <div class="brand-text">
-        <h1 id="brandTitle">ຕິດຕາມການຝຶກອົບຮົມ</h1>
+        <div class="brand-eyebrow">ທະນາຄານພັດທະນາລາວ · LDB</div>
+        <h1 id="brandTitle">ລະບົບຕິດຕາມການຝຶກອົບຮົມ</h1>
         <div class="sub" id="brandSub">Training &amp; Budget Dashboard</div>
       </div>
     </div>
@@ -6085,6 +6098,7 @@ function renderYearBar(){
   el.innerHTML = ys.map(function(y){
     return '<button class="ybtn" data-y="'+esc(y)+'" aria-pressed="'+(state.view==='year' && state.year===y)+'">'+'ພາບລວມ'+'</button>';
   }).join('') +
+  '<div class="side-divider" role="separator"></div><div class="sidebar-label">ໜ້າ</div>' +
   (EXEC_MODE ? '' :
   '<button class="ybtn ybtn-staff" data-y="__staff__" aria-pressed="'+(state.view==='staff')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>'+
@@ -8419,24 +8433,17 @@ function renderAll(){
   renderYearManager();
 
   var multiOn = (state.view==='multi'), staffOn = (state.view==='staff'), reportOn = (state.view==='report'), deptOn = (state.view==='dept'), posterOn = (state.view==='poster'), qrOn = (state.view==='qr'), aiOn = (state.view==='ai');
-  document.getElementById('brandTitle').textContent =
-    multiOn ? 'ຕິດຕາມການຝຶກອົບຮົມ · ສະຫຼຸບລາຍປີ'
-    : staffOn ? 'ລາຍຊື່ພະນັກງານ ແລະ ຄວາມຄອບຄຸມການຝຶກ'
-    : reportOn ? 'ລາຍງານໜ້າດຽວ ປະຈຳປີ '+state.year
-    : deptOn ? 'ລາຍລະອຽດລາຍຝ່າຍ/ສາຂາ ປະຈຳປີ '+state.year
-    : posterOn ? 'ສະຫຼຸບແບບ Poster ປະຈຳປີ '+state.year
-    : qrOn ? 'ສ້າງ QR ລົງທະບຽນຝຶກອົບຮົມ'
-    : aiOn ? 'ຖາມ AI ວິເຄາະຂໍ້ມູນ'
-    : 'ຕິດຕາມການຝຶກອົບຮົມ ປະຈຳປີ '+state.year;
+  // brandTitle ("ລະບົບຕິດຕາມການຝຶກອົບຮົມ") is the fixed system name, set once in the HTML —
+  // it no longer changes per view. Only the subtitle below it says which page is open.
   document.getElementById('brandSub').textContent =
-    multiOn ? ('Training & Budget Dashboard — '+ys[0]+'–'+ys[ys.length-1]+' ('+ys.length+' ປີ)')
-    : staffOn ? ('Staff Directory — ອ້າງອີງການເຂົ້າຮ່ວມຂອງປີ '+state.year)
-    : reportOn ? 'One-page Report — ແຜນ, ງົບປະມານ ແລະ ຜົນການຈັດຕັ້ງປະຕິບັດແຕ່ລະເດືອນ'
-    : deptOn ? 'ລາຍລະອຽດຕາມຝ່າຍ/ສາຂາ — ຫົວຂໍ້, ງົບປະມານ ແລະ ຜູ້ເຂົ້າຮ່ວມ'
-    : posterOn ? 'Poster Summary — ພາບລວມທັງໝົດໃນໜ້າດຽວ ສຳລັບພິມ ຫຼື ນຳສະເໜີ'
-    : qrOn ? 'ສ້າງ QR ສະເພາະແຕ່ລະຄັ້ງ — ໃຫ້ຜູ້ເຂົ້າຮ່ວມສະແກນເພື່ອລົງທະບຽນຜ່ານ Google Form'
-    : aiOn ? 'ຖາມ-ຕອບກັບ AI ໂດຍອີງໃສ່ຂໍ້ມູນຈິງໃນລະບົບນີ້ ພ້ອມສະແດງຂໍ້ມູນປະກອບ'
-    : 'Training & Budget Dashboard — ເກັບຂໍ້ມູນໄດ້ຫຼາຍປີ';
+    multiOn ? ('ສະຫຼຸບລາຍປີ '+ys[0]+'–'+ys[ys.length-1]+' ('+ys.length+' ປີ)')
+    : staffOn ? ('ລາຍຊື່ພະນັກງານ ແລະ ຄວາມຄອບຄຸມການຝຶກ — ປີ '+state.year)
+    : reportOn ? ('ລາຍງານໜ້າດຽວ ປະຈຳປີ '+state.year+' — ແຜນ, ງົບປະມານ ແລະ ຜົນການຈັດຕັ້ງປະຕິບັດ')
+    : deptOn ? ('ລາຍລະອຽດລາຍຝ່າຍ/ສາຂາ ປະຈຳປີ '+state.year)
+    : posterOn ? ('ສະຫຼຸບແບບ Poster ປະຈຳປີ '+state.year+' — ສຳລັບພິມ ຫຼື ນຳສະເໜີ')
+    : qrOn ? 'ສ້າງ QR ລົງທະບຽນຝຶກອົບຮົມ'
+    : aiOn ? 'ຖາມ AI ວິເຄາະຂໍ້ມູນໃນລະບົບ'
+    : ('ພາບລວມປະຈຳປີ '+state.year);
   document.getElementById('multiYear').style.display  = multiOn? 'block':'none';
   document.getElementById('staffView').style.display  = staffOn? 'block':'none';
   document.getElementById('reportView').style.display = reportOn? 'block':'none';
