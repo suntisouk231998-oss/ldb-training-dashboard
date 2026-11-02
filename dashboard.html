@@ -309,18 +309,36 @@
   .lc-title{ font-size:14px; font-weight:700; color:var(--text-1); }
   .lc-sub{ font-size:11.5px; color:var(--text-muted); margin-top:1px; }
   .lc-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-  .lc-stat{ background:var(--surface-2); border-radius:var(--radius-md); padding:9px 6px; text-align:center; }
-  .lc-stat .lc-n{ font-family:"Noto Serif Lao",serif; font-size:16.5px; font-weight:700; color:var(--text-1); }
+  /* the Topics card shows 4 tiles (plan / completed·in-plan / completed·out-of-plan
+     / ongoing) instead of 3, so it gets its own 2x2 layout */
+  .lc-topics .lc-stats{ grid-template-columns:repeat(2,1fr); }
+  .lc-stat{ background:var(--surface-2); border-radius:var(--radius-md); padding:9px 6px; text-align:center; min-width:0; overflow:hidden; }
+  .lc-stat .lc-n{
+    font-family:"Noto Serif Lao",serif; font-weight:700; color:var(--text-1);
+    font-size:16.5px; overflow-wrap:anywhere; word-break:break-word; line-height:1.18;
+  }
+  /* budget figures run far longer (billions of kip) than topic/people counts,
+     so the budget card's tiles need a smaller, flex-shrinking number size to
+     stay inside the card — this is the fix for the number-overflow bug */
+  .lc-budget .lc-stat .lc-n{ font-size:clamp(11px,2.6vw,14.5px); letter-spacing:-0.01em; }
   .lc-stat .lc-l{ font-size:10.5px; color:var(--text-muted); margin-top:2px; }
+  .lc-stat .lc-mini{ font-size:10px; color:var(--text-muted); margin-top:1px; font-variant-numeric:tabular-nums; }
   .lc-stat.lc-done .lc-n{ color:var(--good); }
   .lc-stat.lc-open .lc-n{ color:var(--warning); }
-  .lc-pct-row{ display:flex; align-items:center; gap:10px; }
+  .lc-stat.lc-clickable{ cursor:pointer; transition:background .15s ease, box-shadow .15s ease; }
+  .lc-stat.lc-clickable:hover{ background:var(--accent-tint); box-shadow:inset 0 0 0 1px var(--accent-tint-strong); }
+  .lc-stat.lc-clickable:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .lc-pct-row{ display:flex; align-items:center; gap:10px; cursor:default; }
+  .lc-pct-row.lc-clickable{ cursor:pointer; border-radius:var(--radius-md); }
+  .lc-pct-row.lc-clickable:hover .lc-pct-val{ color:var(--accent); }
   .lc-pct-bar{ flex:1; height:8px; border-radius:99px; background:var(--surface-2); overflow:hidden; }
   .lc-pct-bar > i{ display:block; height:100%; border-radius:inherit; background:var(--accent); }
   .lc-budget .lc-pct-bar > i{ background:var(--series-outplan); }
   .lc-pct-val{ font-size:13px; font-weight:700; color:var(--text-1); font-variant-numeric:tabular-nums; white-space:nowrap; }
   .lc-people-value{ font-family:"Noto Serif Lao",serif; font-size:clamp(22px,3vw,30px); font-weight:700; color:var(--text-1); }
   .lc-people-value small{ font-size:13px; font-weight:500; color:var(--text-2); }
+  .lc-people-value.lc-clickable{ cursor:pointer; display:inline-flex; align-items:baseline; gap:6px; border-radius:var(--radius-md); transition:color .15s ease; }
+  .lc-people-value.lc-clickable:hover{ color:var(--accent); }
   .lc-people-sub{ font-size:12.5px; color:var(--text-muted); margin-top:-6px; }
   .lc-links{ display:flex; gap:8px; margin-top:2px; flex-wrap:wrap; }
   .lc-link{
@@ -331,6 +349,24 @@
   .lc-link:hover{ background:var(--accent-tint); border-color:var(--accent-tint-strong); color:var(--accent); }
   .kpi-extra{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
   @media (max-width:640px){ .kpi-extra{ grid-template-columns:1fr; } }
+
+  /* ---- Layer-1 drill-down rank lists (rendered inside the shared modal) ---- */
+  .dk-list{ display:flex; flex-direction:column; gap:9px; }
+  .dk-row{ display:flex; align-items:center; gap:10px; }
+  .dk-rank{ flex:none; width:20px; text-align:right; font-size:11px; font-weight:700; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+  .dk-main{ flex:1; min-width:0; }
+  .dk-name{ font-size:12.5px; font-weight:700; color:var(--text-1); display:flex; justify-content:space-between; gap:10px; }
+  .dk-name span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dk-name b{ flex:none; font-variant-numeric:tabular-nums; font-weight:700; color:var(--text-1); }
+  .dk-bar{ height:7px; border-radius:99px; background:var(--surface-2); overflow:hidden; margin-top:4px; }
+  .dk-bar > i{ display:block; height:100%; border-radius:inherit; background:var(--accent); }
+  .dk-sub{ font-size:10.5px; color:var(--text-muted); margin-top:2px; }
+  .dk-empty{ font-size:12.5px; color:var(--text-muted); text-align:center; padding:16px 0; }
+  .dk-note{ font-size:11.5px; color:var(--text-muted); margin-top:14px; padding-top:12px; border-top:1px solid var(--border); line-height:1.65; }
+  .dk-summary{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:4px; }
+  .dk-sum-stat{ background:var(--surface-2); border-radius:var(--radius-md); padding:10px 12px; }
+  .dk-sum-stat .l{ font-size:11px; color:var(--text-2); font-weight:600; }
+  .dk-sum-stat .v{ font-family:"Noto Serif Lao",serif; font-size:16px; font-weight:700; color:var(--text-1); margin-top:2px; font-variant-numeric:tabular-nums; }
 
   /* grouped sidebar section headers (ແດຊບອດ / ລາຍງານ / ເຄື່ອງມື) reuse
      .sidebar-label but get a touch more top space once more than one is
@@ -5194,6 +5230,38 @@ function buildModel(raw){
     else inplanOpen++;
   });
 
+  // Same idea as the in-plan block above, but for "ນອກແຜນ" rows, plus a
+  // per-department tally of EVERY completed topic (in-plan or out-of-plan)
+  // for the Layer-1 "ຫົວຂໍ້ຝຶກອົບຮົມ" card's completed-by-department drill-down.
+  var outplanTracked = 0, outplanDone = 0, outplanOpen = 0;
+  var deptCompleted = {}; // dept -> {dept, done, inplanDone, outplanDone}
+  raw.tracking.forEach(function(t){
+    var b = normType(t.type);
+    var inPlanBucket = isInPlan(b);
+    var isOutplan = (b==='outplan');
+    if(!inPlanBucket && !isOutplan) return; // 'other' bucket has no plan/outplan home
+    if(isOutplan) outplanTracked++;
+    if(isCancelled(t.status)) return;
+    if(!isCompleted(t.status)){ if(isOutplan) outplanOpen++; return; }
+    if(isOutplan) outplanDone++;
+    var dept = normDept(t.dept);
+    var dc = (deptCompleted[dept] = deptCompleted[dept] || {dept:dept, done:0, inplanDone:0, outplanDone:0});
+    dc.done++;
+    if(inPlanBucket) dc.inplanDone++; else dc.outplanDone++;
+  });
+  var deptCompletedRanking = Object.keys(deptCompleted).map(function(k){ return deptCompleted[k]; })
+    .sort(function(a,b){ return b.done-a.done; });
+
+  // Individual training topics ranked by headcount, for the Layer-1
+  // "ຜູ້ເຂົ້າຮ່ວມ" card's most-attended-topics drill-down.
+  var topicParticipantRanking = raw.tracking.map(function(t){
+    return {
+      code: t.code||'', title: t.title||t.code||'ບໍ່ລະບຸຫົວຂໍ້', dept: normDept(t.dept),
+      month: t.month||'', participants: num(t.total) || (num(t.f)+num(t.m))
+    };
+  }).filter(function(x){ return x.participants>0; })
+    .sort(function(a,b){ return b.participants-a.participants; });
+
   var planStatusKnown = 0, planStatusDone = 0;
   raw.plan.forEach(function(p){
     if(p.status===null || p.status===undefined) return;
@@ -5417,6 +5485,8 @@ function buildModel(raw){
     quarterStats: quarterStats,
     inplanTracked: inplanTracked, inplanDone: inplanDone, inplanOpen: inplanOpen,
     linkedTracked: linkedTracked, linkedDone: linkedDone,
+    outplanTracked: outplanTracked, outplanDone: outplanDone, outplanOpen: outplanOpen,
+    deptCompletedRanking: deptCompletedRanking, topicParticipantRanking: topicParticipantRanking,
     planStatusDone: planStatusDone, planStatusUsable: planStatusUsable
   };
 }
@@ -5701,16 +5771,77 @@ function lcDrillLinks(){
     '<button type="button" class="lc-link" data-goto="dept">'+iconSvg('building',12)+' ລາຍຝ່າຍ / ລາຍສາຂາ</button>'+
   '</div>';
 }
-function lcStat(cls, n, label){
-  return '<div class="lc-stat '+cls+'"><div class="lc-n num">'+n+'</div><div class="lc-l">'+label+'</div></div>';
+function lcStat(cls, n, label, mini, clickable, dataAttr){
+  var cls2 = cls + (clickable? ' lc-clickable':'');
+  return '<div class="lc-stat '+cls2+'"'+(clickable? ' tabindex="0" role="button" data-drill="'+dataAttr+'"':'')+'>'+
+    '<div class="lc-n num">'+n+'</div><div class="lc-l">'+label+'</div>'+
+    (mini!=null? '<div class="lc-mini">'+mini+'</div>' : '')+
+  '</div>';
+}
+function dkBarRow(rank, name, value, maxValue, sub, valueLabel){
+  var pct = maxValue>0 ? Math.min(100, (value/maxValue)*100) : 0;
+  return '<div class="dk-row"><div class="dk-rank">'+rank+'</div>'+
+    '<div class="dk-main"><div class="dk-name"><span>'+esc(name)+'</span><b class="num">'+valueLabel+'</b></div>'+
+    '<div class="dk-bar"><i style="width:'+pct+'%"></i></div>'+
+    (sub? '<div class="dk-sub">'+sub+'</div>' : '')+
+    '</div></div>';
+}
+/* Layer-1 "ຫົວຂໍ້ຝຶກອົບຮົມ" card: clicking either completed tile shows every
+   completed topic (in-plan + out-of-plan together) broken down by
+   department/branch, ranked from most to least. */
+function openDeptCompletedDrill(m){
+  var rows = m.deptCompletedRanking;
+  var max = rows.length? rows[0].done : 0;
+  var totalDone = rows.reduce(function(s,r){ return s+r.done; }, 0);
+  var body = !rows.length
+    ? '<div class="dk-empty">ຍັງບໍ່ມີຫົວຂໍ້ທີ່ສຳເລັດໃນປີນີ້</div>'
+    : '<div class="dk-list">'+rows.map(function(r,i){
+        var sub = 'ໃນແຜນ '+fmtInt(r.inplanDone)+' · ນອກແຜນ '+fmtInt(r.outplanDone)+' · '+fmtPct(totalDone? r.done/totalDone:0)+' ຂອງຍອດສຳເລັດທັງໝົດ';
+        return dkBarRow(i+1, r.dept, r.done, max, sub, fmtInt(r.done)+' ຫົວຂໍ້');
+      }).join('')+'</div>';
+  uiModal({title:'ຫົວຂໍ້ທີ່ສຳເລັດ — ລຽງຕາມພະແນກ/ສາຂາ', bodyHtml:body, noCancel:true, okText:'ປິດ'});
+}
+/* Layer-1 "ງົບປະມານ" card: the source data only carries ONE annual actual-
+   spend total (no per-department or per-topic breakdown exists anywhere in
+   the workbook — confirmed against the tracking/plan sheets), so this shows
+   the honest total instead of a fabricated per-department ranking. Per-
+   department figures DO exist for the *planned* budget — that's the
+   "ລາຍຝ່າຍ / ລາຍສາຂາ" drill-down link already on this card. */
+function openBudgetDrill(m){
+  var body =
+    '<div class="dk-summary">'+
+      '<div class="dk-sum-stat"><div class="l">ງົບປະຈຳປີ (ແຜນ)</div><div class="v num">'+fmtMillion(m.annualBudget)+' ກີບ</div></div>'+
+      '<div class="dk-sum-stat"><div class="l">ນຳໃຊ້ຕົວຈິງ</div><div class="v num">'+fmtMillion(m.actualTotal)+' ກີບ</div></div>'+
+      '<div class="dk-sum-stat"><div class="l">ຍັງເຫຼືອ</div><div class="v num">'+fmtMillion(m.remaining)+' ກີບ</div></div>'+
+      '<div class="dk-sum-stat"><div class="l">% ນຳໃຊ້ໄປ</div><div class="v num">'+fmtPct(m.pctUsed)+'</div></div>'+
+    '</div>'+
+    '<div class="dk-note">ຂໍ້ມູນ "ງົບນຳໃຊ້ຕົວຈິງ" ທີ່ມີຢູ່ໃນລະບົບແມ່ນຍອດລວມທັງປີເທົ່ານັ້ນ (1 ຕົວເລກ) — ບໍ່ໄດ້ບັນທຶກແຍກຕາມພະແນກ/ສາຂາ ຫຼື ແຍກຕາມຫົວຂໍ້ ໄວ້ໃນຊີດຂໍ້ມູນ, ຈຶ່ງສະແດງເປັນຍອດລວມແທນການລຽງລຳດັບຕາມພະແນກ. (ງົບ "ຕາມແຜນ" ແຍກຕາມພະແນກໄດ້ — ເບິ່ງປຸ່ມ "ລາຍຝ່າຍ / ລາຍສາຂາ" ຂ້າງລຸ່ມ)</div>';
+  uiModal({title:'ງົບປະມານ — ຍອດລວມທັງປີ', bodyHtml:body, noCancel:true, okText:'ປິດ'});
+}
+/* Layer-1 "ຜູ້ເຂົ້າຮ່ວມ" card: which training topics drew the most people,
+   most to least. */
+function openTopicParticipantsDrill(m){
+  var all = m.topicParticipantRanking;
+  var rows = all.slice(0,25);
+  var max = rows.length? rows[0].participants : 0;
+  var body = !rows.length
+    ? '<div class="dk-empty">ຍັງບໍ່ມີຂໍ້ມູນຜູ້ເຂົ້າຮ່ວມ</div>'
+    : '<div class="dk-list">'+rows.map(function(r,i){
+        var sub = (r.dept||'ບໍ່ລະບຸ')+(r.month? ' · '+r.month : '');
+        return dkBarRow(i+1, r.title, r.participants, max, sub, fmtInt(r.participants)+' ເທື່ອຄົນ');
+      }).join('')+'</div>'+
+      (all.length>25? '<div class="dk-note">ສະແດງ 25 ຫົວຂໍ້ທີ່ມີຜູ້ເຂົ້າຮ່ວມຫຼາຍທີ່ສຸດ, ຈາກທັງໝົດ '+fmtInt(all.length)+' ຫົວຂໍ້</div>' : '');
+  uiModal({title:'ຫົວຂໍ້ທີ່ມີຜູ້ເຂົ້າຮ່ວມຫຼາຍທີ່ສຸດ', bodyHtml:body, noCancel:true, okText:'ປິດ'});
 }
 function renderKPIs(m){
   var el = document.getElementById('kpiGrid');
   var trackedTotal = m.trackingTotal;
 
-  var topicsPlan = m.planTotal, topicsDone = m.inplanDone;
-  var topicsOngoing = Math.max(0, topicsPlan - topicsDone);
-  var topicsPct = topicsPlan? topicsDone/topicsPlan : 0;
+  var topicsPlan = m.planTotal, topicsDoneInplan = m.inplanDone, topicsDoneOutplan = m.outplanDone;
+  var topicsOngoing = Math.max(0, topicsPlan - topicsDoneInplan);
+  var topicsPct = topicsPlan? topicsDoneInplan/topicsPlan : 0;
+  var topicsOutplanPct = m.outplanTracked? topicsDoneOutplan/m.outplanTracked : 0;
+  var topicsOngoingPct = topicsPlan? topicsOngoing/topicsPlan : 0;
 
   var budgetPlan = m.annualBudget, budgetDone = m.actualTotal;
   var budgetOngoing = m.remaining; // already Math.max(0, plan-actual) — see buildModel()
@@ -5720,9 +5851,10 @@ function renderKPIs(m){
     '<div class="layer-card lc-topics" title="ນັບຈາກຊີດ &quot;ຕິດຕາມຕົວຈິງ&quot; — ລາຍການ &quot;ໃນແຜນ&quot; ແລະ &quot;ວຽກເຊື່ອມ&quot; ທີ່ມີສະຖານະ Completed (ໃນນັ້ນເປັນວຽກເຊື່ອມ '+m.linkedDone+' ຫົວຂໍ້)">'+
       '<div class="lc-head"><div class="lc-icon">'+iconSvg('plan')+'</div><div><div class="lc-title">ຫົວຂໍ້ຝຶກອົບຮົມ</div><div class="lc-sub">ປະຈຳປີ '+esc(String(state.year))+'</div></div></div>'+
       '<div class="lc-stats">'+
-        lcStat('lc-plan', fmtInt(topicsPlan), 'ແຜນ')+
-        lcStat('lc-done', fmtInt(topicsDone), 'ສຳເລັດ')+
-        lcStat('lc-open', fmtInt(topicsOngoing), 'ສືບຕໍ່')+
+        lcStat('lc-plan', fmtInt(topicsPlan), 'ແຜນທັງໝົດ')+
+        lcStat('lc-done', fmtInt(topicsDoneInplan), 'ສຳເລັດ·ໃນແຜນ', fmtPct(topicsPct)+' ຂອງແຜນ', true, 'dept-completed')+
+        lcStat('lc-done', fmtInt(topicsDoneOutplan), 'ສຳເລັດ·ນອກແຜນ', fmtPct(topicsOutplanPct)+' ຂອງນອກແຜນ', true, 'dept-completed')+
+        lcStat('lc-open', fmtInt(topicsOngoing), 'ສືບຕໍ່', fmtPct(topicsOngoingPct)+' ຂອງແຜນ')+
       '</div>'+
       '<div class="lc-pct-row"><div class="lc-pct-bar"><i style="width:'+Math.min(100,topicsPct*100)+'%"></i></div><div class="lc-pct-val">'+fmtPct(topicsPct)+'</div></div>'+
       lcDrillLinks()+
@@ -5731,7 +5863,7 @@ function renderKPIs(m){
       '<div class="lc-head"><div class="lc-icon">'+iconSvg('wallet')+'</div><div><div class="lc-title">ງົບປະມານ</div><div class="lc-sub">ປະຈຳປີ '+esc(String(state.year))+' · ກີບ</div></div></div>'+
       '<div class="lc-stats">'+
         lcStat('lc-plan', fmtMillion(budgetPlan), 'ແຜນ')+
-        lcStat('lc-done', fmtMillion(budgetDone), 'ສຳເລັດ')+
+        lcStat('lc-done', fmtMillion(budgetDone), 'ສຳເລັດ', null, true, 'budget-total')+
         lcStat('lc-open', fmtMillion(budgetOngoing), 'ສືບຕໍ່')+
       '</div>'+
       '<div class="lc-pct-row"><div class="lc-pct-bar"><i style="width:'+Math.min(100,budgetPct*100)+'%"></i></div><div class="lc-pct-val">'+fmtPct(budgetPct)+'</div></div>'+
@@ -5739,7 +5871,7 @@ function renderKPIs(m){
     '</div>'+
     '<div class="layer-card lc-people">'+
       '<div class="lc-head"><div class="lc-icon">'+iconSvg('users')+'</div><div><div class="lc-title">ຜູ້ເຂົ້າຮ່ວມ</div><div class="lc-sub">ຈັກເທື່ອຄົນ — ນັບລວມທຸກຄັ້ງ</div></div></div>'+
-      '<div class="lc-people-value num">'+fmtInt(m.totalParticipants.total)+' <small>ທ່ານ-ຄັ້ງ</small></div>'+
+      '<div class="lc-people-value lc-clickable num" tabindex="0" role="button" data-drill="topic-participants">'+fmtInt(m.totalParticipants.total)+' <small>ເທື່ອຄົນ</small></div>'+
       '<div class="lc-people-sub">ຍິງ '+fmtInt(m.totalParticipants.f)+' · ຊາຍ '+fmtInt(m.totalParticipants.m)+'</div>'+
       lcDrillLinks()+
     '</div>';
@@ -5776,6 +5908,18 @@ function renderKPIs(m){
       state.view = (g==='staff') ? 'staff' : 'dept';
       renderAll();
       window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+
+  function triggerDrill(key){
+    if(key==='dept-completed') openDeptCompletedDrill(m);
+    else if(key==='budget-total') openBudgetDrill(m);
+    else if(key==='topic-participants') openTopicParticipantsDrill(m);
+  }
+  el.querySelectorAll('[data-drill]').forEach(function(b){
+    b.addEventListener('click', function(){ triggerDrill(b.getAttribute('data-drill')); });
+    b.addEventListener('keydown', function(e){
+      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); triggerDrill(b.getAttribute('data-drill')); }
     });
   });
 
