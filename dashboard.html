@@ -347,6 +347,17 @@
     padding:6px 11px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; transition:.15s ease;
   }
   .lc-link:hover{ background:var(--accent-tint); border-color:var(--accent-tint-strong); color:var(--accent); }
+  /* compact donut mini-chart embedded inside a Layer-1 card, between the
+     head and the number tiles — reuses the shared .donut-card component at
+     a smaller footprint so it fits the narrower card width */
+  .lc-mini-donut .donut-card{ background:var(--surface-2); border:1px solid var(--border); padding:11px 12px; gap:4px; }
+  .lc-mini-donut .donut-card h4{ font-size:10.5px; font-weight:600; }
+  .lc-mini-donut .donut-wrap{ gap:10px; }
+  .lc-mini-donut .donut-center b{ font-size:13.5px; }
+  .lc-mini-donut .donut-center span{ font-size:8.5px; }
+  .lc-mini-donut .dl-row{ font-size:10.5px; gap:6px; }
+  .lc-mini-donut .dl-row i{ width:8px; height:8px; }
+  .lc-mini-donut .dl-val{ font-size:10px; }
   .kpi-extra{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
   @media (max-width:640px){ .kpi-extra{ grid-template-columns:1fr; } }
 
@@ -5847,9 +5858,35 @@ function renderKPIs(m){
   var budgetOngoing = m.remaining; // already Math.max(0, plan-actual) — see buildModel()
   var budgetPct = m.pctUsed;
 
+  // Layer-1 donuts — how many topics were actually HELD this year, split by
+  // type (mirrors the "ຝຶກຕົວຈິງທັງໝົດ" KPI's own ໃນແຜນ/ນອກແຜນ wording, so the
+  // two numbers never disagree); budget used-vs-remaining; participant
+  // gender split. All three use the shared donutCard()/donutSVG() component.
+  var topicsTypeItems = [
+    {label:'ໃນແຜນ (ລວມວຽກເຊື່ອມ '+fmtInt(m.linkedTracked)+')', value:m.inplanTracked, color:'var(--series-inplan)'},
+    {label:'ນອກແຜນ', value:m.outplanTracked, color:'var(--series-outplan)'}
+  ];
+  if(m.byTypeCount.other>0) topicsTypeItems.push({label:'ອື່ນໆ', value:m.byTypeCount.other, color:'var(--text-muted)'});
+  var topicsDonut = donutCard('ຈັດຕົວຈິງທັງໝົດ · ໃນແຜນ vs ນອກແຜນ', topicsTypeItems,
+    {size:76, thickness:13, centerLabel:fmtInt(m.trackingTotal), centerSub:'ຫົວຂໍ້ທັງໝົດ'});
+
+  var budgetUseItems = [
+    {label:'ນຳໃຊ້ຕົວຈິງ', value:budgetDone, color:'var(--series-outplan)'},
+    {label:'ຍັງເຫຼືອ', value:budgetOngoing, color:'var(--series-linked)'}
+  ];
+  var budgetDonut = donutCard('ນຳໃຊ້ທຽບແຜນ', budgetUseItems,
+    {size:76, thickness:13, centerLabel:fmtPct(budgetPct), centerSub:'ນຳໃຊ້ໄປ'});
+
+  var genderItems = [
+    {label:'ຍິງ', value:m.totalParticipants.f, color:'var(--series-linked)'},
+    {label:'ຊາຍ', value:m.totalParticipants.m, color:'var(--series-inplan)'}
+  ];
+  var peopleDonut = donutCard('ອັດຕາສ່ວນ ຍິງ / ຊາຍ', genderItems, {size:76, thickness:13});
+
   var layerCards =
     '<div class="layer-card lc-topics" title="ນັບຈາກຊີດ &quot;ຕິດຕາມຕົວຈິງ&quot; — ລາຍການ &quot;ໃນແຜນ&quot; ແລະ &quot;ວຽກເຊື່ອມ&quot; ທີ່ມີສະຖານະ Completed (ໃນນັ້ນເປັນວຽກເຊື່ອມ '+m.linkedDone+' ຫົວຂໍ້)">'+
       '<div class="lc-head"><div class="lc-icon">'+iconSvg('plan')+'</div><div><div class="lc-title">ຫົວຂໍ້ຝຶກອົບຮົມ</div><div class="lc-sub">ປະຈຳປີ '+esc(String(state.year))+'</div></div></div>'+
+      '<div class="lc-mini-donut lc-topics-donut">'+topicsDonut+'</div>'+
       '<div class="lc-stats">'+
         lcStat('lc-plan', fmtInt(topicsPlan), 'ແຜນທັງໝົດ')+
         lcStat('lc-done', fmtInt(topicsDoneInplan), 'ສຳເລັດ·ໃນແຜນ', fmtPct(topicsPct)+' ຂອງແຜນ', true, 'dept-completed')+
@@ -5861,6 +5898,7 @@ function renderKPIs(m){
     '</div>'+
     '<div class="layer-card lc-budget" title="ແຜນ = ງົບປະຈຳປີທີ່ອະນຸມັດ · ສຳເລັດ = ນຳໃຊ້ຕົວຈິງ · ສືບຕໍ່ = ງົບທີ່ຍັງເຫຼືອ (ແຜນ ລົບ ນຳໃຊ້ຕົວຈິງ)">'+
       '<div class="lc-head"><div class="lc-icon">'+iconSvg('wallet')+'</div><div><div class="lc-title">ງົບປະມານ</div><div class="lc-sub">ປະຈຳປີ '+esc(String(state.year))+' · ກີບ</div></div></div>'+
+      '<div class="lc-mini-donut lc-budget-donut">'+budgetDonut+'</div>'+
       '<div class="lc-stats">'+
         lcStat('lc-plan', fmtMillion(budgetPlan), 'ແຜນ')+
         lcStat('lc-done', fmtMillion(budgetDone), 'ສຳເລັດ', null, true, 'budget-total')+
@@ -5872,7 +5910,7 @@ function renderKPIs(m){
     '<div class="layer-card lc-people">'+
       '<div class="lc-head"><div class="lc-icon">'+iconSvg('users')+'</div><div><div class="lc-title">ຜູ້ເຂົ້າຮ່ວມ</div><div class="lc-sub">ຈັກເທື່ອຄົນ — ນັບລວມທຸກຄັ້ງ</div></div></div>'+
       '<div class="lc-people-value lc-clickable num" tabindex="0" role="button" data-drill="topic-participants">'+fmtInt(m.totalParticipants.total)+' <small>ເທື່ອຄົນ</small></div>'+
-      '<div class="lc-people-sub">ຍິງ '+fmtInt(m.totalParticipants.f)+' · ຊາຍ '+fmtInt(m.totalParticipants.m)+'</div>'+
+      '<div class="lc-mini-donut lc-people-donut">'+peopleDonut+'</div>'+
       lcDrillLinks()+
     '</div>';
 
@@ -5910,6 +5948,13 @@ function renderKPIs(m){
       window.scrollTo({top:0, behavior:'smooth'});
     });
   });
+
+  var topicsDonutEl = el.querySelector('.lc-topics-donut .donut-card');
+  if(topicsDonutEl) bindDonutTips(topicsDonutEl, topicsTypeItems, {unit:'ຫົວຂໍ້'});
+  var budgetDonutEl = el.querySelector('.lc-budget-donut .donut-card');
+  if(budgetDonutEl) bindDonutTips(budgetDonutEl, budgetUseItems, {unit:'ກີບ', fmt:fmtMillion});
+  var peopleDonutEl = el.querySelector('.lc-people-donut .donut-card');
+  if(peopleDonutEl) bindDonutTips(peopleDonutEl, genderItems, {unit:'ເທື່ອຄົນ'});
 
   function triggerDrill(key){
     if(key==='dept-completed') openDeptCompletedDrill(m);
