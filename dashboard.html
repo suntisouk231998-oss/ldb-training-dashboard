@@ -260,6 +260,12 @@
   }
   @media (max-width:1080px){ .kpi-grid{ grid-template-columns:repeat(2,1fr);} .kpi-grid .kpi:nth-child(5){grid-column:1/-1;} }
   @media (max-width:520px){ .kpi-grid{ grid-template-columns:1fr;} .kpi-grid .kpi:nth-child(5){grid-column:auto;} }
+  /* #kpiGrid (the year-overview Layer-1 section) no longer holds bare .kpi
+     tiles directly — it holds the label + .layer-grid + .kpi-extra wrapper
+     below — so it drops the grid layout itself via higher ID specificity.
+     .kpi-grid.kpi-4 (staffKpi / repKpi) and any other .kpi-grid consumer
+     keep the original 5-col grid behaviour untouched. */
+  #kpiGrid{ display:block; }
   .kpi{
     background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:var(--radius-lg);
     padding:16px 18px 16px 58px; box-shadow:var(--shadow-card); position:relative;
@@ -280,6 +286,57 @@
   .kpi .foot .up{ color:var(--good); font-weight:700; }
   .kpi .bar{ height:6px; border-radius:99px; background:var(--surface-2); overflow:hidden; margin-top:2px;}
   .kpi .bar > i{ display:block; height:100%; background:var(--accent); border-radius:inherit; }
+
+  /* ---------- Layer 1: the three overview cards (Dashboard home) ---------- */
+  .layer1-label{ font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
+  .layer-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
+  @media (max-width:980px){ .layer-grid{ grid-template-columns:1fr; } }
+  .layer-card{
+    background:var(--surface); border:1px solid var(--border); border-top:4px solid var(--accent); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card); padding:18px 20px; display:flex; flex-direction:column; gap:13px; min-width:0;
+  }
+  .layer-card.lc-budget{ border-top-color: var(--series-outplan); }
+  .layer-card.lc-people{ border-top-color: var(--series-linked); }
+  .lc-head{ display:flex; align-items:center; gap:11px; }
+  .lc-icon{
+    width:34px; height:34px; border-radius:10px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(155deg, var(--accent-tint), var(--accent-tint-strong)); color:var(--accent);
+    box-shadow: inset 0 1px 0 var(--card-edge), 0 1px 2px rgba(11,37,48,.06);
+  }
+  .lc-budget .lc-icon{ background:linear-gradient(155deg, color-mix(in srgb, var(--series-outplan) 18%, white), color-mix(in srgb, var(--series-outplan) 30%, white)); color:var(--series-outplan); }
+  .lc-people .lc-icon{ background:linear-gradient(155deg, color-mix(in srgb, var(--series-linked) 18%, white), color-mix(in srgb, var(--series-linked) 30%, white)); color:var(--series-linked); }
+  .lc-title{ font-size:14px; font-weight:700; color:var(--text-1); }
+  .lc-sub{ font-size:11.5px; color:var(--text-muted); margin-top:1px; }
+  .lc-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .lc-stat{ background:var(--surface-2); border-radius:var(--radius-md); padding:9px 6px; text-align:center; }
+  .lc-stat .lc-n{ font-family:"Noto Serif Lao",serif; font-size:16.5px; font-weight:700; color:var(--text-1); }
+  .lc-stat .lc-l{ font-size:10.5px; color:var(--text-muted); margin-top:2px; }
+  .lc-stat.lc-done .lc-n{ color:var(--good); }
+  .lc-stat.lc-open .lc-n{ color:var(--warning); }
+  .lc-pct-row{ display:flex; align-items:center; gap:10px; }
+  .lc-pct-bar{ flex:1; height:8px; border-radius:99px; background:var(--surface-2); overflow:hidden; }
+  .lc-pct-bar > i{ display:block; height:100%; border-radius:inherit; background:var(--accent); }
+  .lc-budget .lc-pct-bar > i{ background:var(--series-outplan); }
+  .lc-pct-val{ font-size:13px; font-weight:700; color:var(--text-1); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .lc-people-value{ font-family:"Noto Serif Lao",serif; font-size:clamp(22px,3vw,30px); font-weight:700; color:var(--text-1); }
+  .lc-people-value small{ font-size:13px; font-weight:500; color:var(--text-2); }
+  .lc-people-sub{ font-size:12.5px; color:var(--text-muted); margin-top:-6px; }
+  .lc-links{ display:flex; gap:8px; margin-top:2px; flex-wrap:wrap; }
+  .lc-link{
+    appearance:none; font:inherit; font-size:11.5px; font-weight:700; cursor:pointer;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-2);
+    padding:6px 11px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; transition:.15s ease;
+  }
+  .lc-link:hover{ background:var(--accent-tint); border-color:var(--accent-tint-strong); color:var(--accent); }
+  .kpi-extra{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  @media (max-width:640px){ .kpi-extra{ grid-template-columns:1fr; } }
+
+  /* grouped sidebar section headers (ແດຊບອດ / ລາຍງານ / ເຄື່ອງມື) reuse
+     .sidebar-label but get a touch more top space once more than one is
+     stacked in the sidebar */
+  .sidebar-label-group{ margin-top:2px; }
+  .sidebar-label-group:first-child{ margin-top:0; }
 
   /* ---------- section / cards ---------- */
   .grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
@@ -631,7 +688,6 @@
   .zoom-pct{ font-size:10px; font-weight:700; color:var(--text-muted); min-width:32px; text-align:center; font-variant-numeric:tabular-nums; }
 
   /* ---------- one-page report ---------- */
-  .ybtn-report{ background:var(--surface-2); }
   .sec-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin:26px 0 14px; flex-wrap:wrap; }
   .sec-head h3{ font-family:"Noto Serif Lao",serif; font-size:15px; font-weight:700; color:var(--text-1); }
   .sec-desc{ font-size:12.5px; color:var(--text-2); margin-top:3px; max-width:56ch; }
@@ -663,7 +719,6 @@
   .cal-ev{ font-size:10.5px; line-height:1.45; color:var(--text-2); word-break:break-word; }
 
   /* ---------- department / branch detail (accordion) ---------- */
-  .ybtn-dept{ background:var(--surface-2); }
   .dept-acc{ background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:10px; overflow:hidden; }
   .dept-acc[open]{ border-color:var(--border-strong); }
   .dept-acc-summary{
@@ -719,7 +774,6 @@
   .donut-note{ font-size:11px; color:var(--critical); font-weight:600; }
 
   /* ---------- staff directory ---------- */
-  .ybtn-staff{ background:var(--surface-2); }
   .kpi-grid.kpi-4{ grid-template-columns:repeat(4,1fr); }
   @media (max-width:1080px){ .kpi-grid.kpi-4{ grid-template-columns:repeat(2,1fr);} }
   @media (max-width:520px){ .kpi-grid.kpi-4{ grid-template-columns:1fr;} }
@@ -893,7 +947,6 @@
   .sr-only{ position:absolute; width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
 
   /* ---------------- poster summary (one-page, non-interactive) ---------------- */
-  .ybtn-poster{ background:var(--surface-2); }
   .pv-banner{
     background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--series-linked)));
     color:#fff; border-radius:var(--radius-lg); padding:22px 26px; margin-bottom:16px;
@@ -5571,51 +5624,102 @@ function renderSpotlight(m){
 }
 
 /* ---------------- renderers ---------------- */
+/* ---------------- Layer 1: overview cards (Dashboard home) ----------------
+   Three cards, one per thing the org tracks annually: training topics,
+   budget, participants. The first two share the same "ແຜນ / ສຳເລັດ / ສືບຕໍ່ /
+   %ຄວາມຄືບໜ້າ" shape — ongoing is defined as plan minus completed (agreed
+   with the dashboard owner), so it is computed the same way in both places
+   rather than relying on a status value that the source data doesn't
+   consistently carry. Each card also links straight into the matching
+   Layer-2 drill-down (ລາຍບຸກຄົນ / ລາຍຝ່າຍ-ລາຍສາຂາ), hidden in EXEC_MODE since
+   those pages don't exist there. No existing figure is dropped — the two
+   numbers that don't fit the three-card frame (ຝຶກຕົວຈິງທັງໝົດ ignoring the
+   annual plan, and the budget ring/remaining mini-stats) stay on screen as
+   a smaller supplementary row below, exactly as before. */
+function lcDrillLinks(){
+  if(EXEC_MODE) return '';
+  return '<div class="lc-links">'+
+    '<button type="button" class="lc-link" data-goto="staff">'+iconSvg('users',12)+' ລາຍບຸກຄົນ</button>'+
+    '<button type="button" class="lc-link" data-goto="dept">'+iconSvg('building',12)+' ລາຍຝ່າຍ / ລາຍສາຂາ</button>'+
+  '</div>';
+}
+function lcStat(cls, n, label){
+  return '<div class="lc-stat '+cls+'"><div class="lc-n num">'+n+'</div><div class="lc-l">'+label+'</div></div>';
+}
 function renderKPIs(m){
   var el = document.getElementById('kpiGrid');
   var trackedTotal = m.trackingTotal;
-  var items = [
-    {
-      icon:'wallet',
-      label:'ງົບປະມານປະຈຳປີ',
-      value:'<span class="num">'+fmtMillion(m.annualBudget)+'</span> <small>ກີບ</small>',
-      foot:'ງົບທັງໝົດທີ່ອະນຸມັດສຳລັບການຝຶກອົບຮົມ 2026'
-    },
-    {
-      icon:'spend',
-      label:'ນຳໃຊ້ຕົວຈິງ',
-      value:'<span class="num">'+fmtMillion(m.actualTotal)+'</span> <small>ກີບ</small>',
-      foot:'<span class="up">'+fmtPct(m.pctUsed)+'</span> ຂອງງົບປະຈຳປີ',
-      bar: Math.min(100,m.pctUsed*100)
-    },
-    {
-      icon:'plan',
-      label:'ຫົວຂໍ້ໃນແຜນປະຈຳປີ',
-      value:'<span class="num">'+fmtInt(m.planTotal)+'</span> <small>ຫົວຂໍ້</small>',
-      foot:'ຈັດແລ້ວຕາມແຜນ '+fmtInt(m.inplanDone)+' ຫົວຂໍ້ ('+fmtPct(m.planTotal? m.inplanDone/m.planTotal:0)+')'+
-           (m.inplanOpen? ' · ກຳລັງດຳເນີນ '+fmtInt(m.inplanOpen):''),
-      bar: m.planTotal? Math.min(100,(m.inplanDone/m.planTotal)*100) : 0,
-      title:'ນັບຈາກຊີດ "ຕິດຕາມຕົວຈິງ" — ລາຍການ "ໃນແຜນ" ແລະ "ວຽກເຊື່ອມ" ທີ່ມີສະຖານະ Completed '+
-            '(ໃນນັ້ນເປັນວຽກເຊື່ອມ '+m.linkedDone+' ຫົວຂໍ້)'
-    },
+
+  var topicsPlan = m.planTotal, topicsDone = m.inplanDone;
+  var topicsOngoing = Math.max(0, topicsPlan - topicsDone);
+  var topicsPct = topicsPlan? topicsDone/topicsPlan : 0;
+
+  var budgetPlan = m.annualBudget, budgetDone = m.actualTotal;
+  var budgetOngoing = m.remaining; // already Math.max(0, plan-actual) — see buildModel()
+  var budgetPct = m.pctUsed;
+
+  var layerCards =
+    '<div class="layer-card lc-topics" title="ນັບຈາກຊີດ &quot;ຕິດຕາມຕົວຈິງ&quot; — ລາຍການ &quot;ໃນແຜນ&quot; ແລະ &quot;ວຽກເຊື່ອມ&quot; ທີ່ມີສະຖານະ Completed (ໃນນັ້ນເປັນວຽກເຊື່ອມ '+m.linkedDone+' ຫົວຂໍ້)">'+
+      '<div class="lc-head"><div class="lc-icon">'+iconSvg('plan')+'</div><div><div class="lc-title">ຫົວຂໍ້ຝຶກອົບຮົມ</div><div class="lc-sub">ປະຈຳປີ '+esc(String(state.year))+'</div></div></div>'+
+      '<div class="lc-stats">'+
+        lcStat('lc-plan', fmtInt(topicsPlan), 'ແຜນ')+
+        lcStat('lc-done', fmtInt(topicsDone), 'ສຳເລັດ')+
+        lcStat('lc-open', fmtInt(topicsOngoing), 'ສືບຕໍ່')+
+      '</div>'+
+      '<div class="lc-pct-row"><div class="lc-pct-bar"><i style="width:'+Math.min(100,topicsPct*100)+'%"></i></div><div class="lc-pct-val">'+fmtPct(topicsPct)+'</div></div>'+
+      lcDrillLinks()+
+    '</div>'+
+    '<div class="layer-card lc-budget" title="ແຜນ = ງົບປະຈຳປີທີ່ອະນຸມັດ · ສຳເລັດ = ນຳໃຊ້ຕົວຈິງ · ສືບຕໍ່ = ງົບທີ່ຍັງເຫຼືອ (ແຜນ ລົບ ນຳໃຊ້ຕົວຈິງ)">'+
+      '<div class="lc-head"><div class="lc-icon">'+iconSvg('wallet')+'</div><div><div class="lc-title">ງົບປະມານ</div><div class="lc-sub">ປະຈຳປີ '+esc(String(state.year))+' · ກີບ</div></div></div>'+
+      '<div class="lc-stats">'+
+        lcStat('lc-plan', fmtMillion(budgetPlan), 'ແຜນ')+
+        lcStat('lc-done', fmtMillion(budgetDone), 'ສຳເລັດ')+
+        lcStat('lc-open', fmtMillion(budgetOngoing), 'ສືບຕໍ່')+
+      '</div>'+
+      '<div class="lc-pct-row"><div class="lc-pct-bar"><i style="width:'+Math.min(100,budgetPct*100)+'%"></i></div><div class="lc-pct-val">'+fmtPct(budgetPct)+'</div></div>'+
+      lcDrillLinks()+
+    '</div>'+
+    '<div class="layer-card lc-people">'+
+      '<div class="lc-head"><div class="lc-icon">'+iconSvg('users')+'</div><div><div class="lc-title">ຜູ້ເຂົ້າຮ່ວມ</div><div class="lc-sub">ຈັກເທື່ອຄົນ — ນັບລວມທຸກຄັ້ງ</div></div></div>'+
+      '<div class="lc-people-value num">'+fmtInt(m.totalParticipants.total)+' <small>ທ່ານ-ຄັ້ງ</small></div>'+
+      '<div class="lc-people-sub">ຍິງ '+fmtInt(m.totalParticipants.f)+' · ຊາຍ '+fmtInt(m.totalParticipants.m)+'</div>'+
+      lcDrillLinks()+
+    '</div>';
+
+  var extraItems = [
     {
       icon:'calendar',
       label:'ຝຶກຕົວຈິງທັງໝົດ',
       value:'<span class="num">'+fmtInt(trackedTotal)+'</span> <small>ຄັ້ງ</small>',
-      foot:'ໃນແຜນ '+fmtInt(m.inplanTracked)+' (ລວມວຽກເຊື່ອມ '+fmtInt(m.linkedTracked)+') · ນອກແຜນ '+fmtInt(m.byTypeCount.outplan)
+      foot:'ໃນແຜນ '+fmtInt(m.inplanTracked)+' (ລວມວຽກເຊື່ອມ '+fmtInt(m.linkedTracked)+') · ນອກແຜນ '+fmtInt(m.byTypeCount.outplan),
+      title:'ທຸກຄັ້ງທີ່ຈັດຕົວຈິງ ລວມທັງຫົວຂໍ້ນອກແຜນ — ອາດຫຼາຍກວ່າ "ຫົວຂໍ້ຝຶກອົບຮົມ" ຂ້າງເທິງ ເຊິ່ງນັບສະເພາະຫົວຂໍ້ໃນແຜນປະຈຳປີ'
     },
     {
-      icon:'users',
-      label:'ຜູ້ເຂົ້າຮ່ວມທັງໝົດ',
-      value:'<span class="num">'+fmtInt(m.totalParticipants.total)+'</span> <small>ທ່ານ</small>',
-      foot:'ຍິງ '+fmtInt(m.totalParticipants.f)+' · ຊາຍ '+fmtInt(m.totalParticipants.m)
+      icon:'spend',
+      label:'ງົບທີ່ຍັງເຫຼືອ',
+      value:'<span class="num">'+fmtMillion(m.remaining)+'</span> <small>ກີບ</small>',
+      foot:'ຈາກງົບປະຈຳປີ '+fmtMillion(m.annualBudget)+' ກີບ ('+fmtPct(1-budgetPct)+' ຍັງບໍ່ທັນນຳໃຊ້)'
     }
   ];
-  el.innerHTML = items.map(function(it){
+  var extraHtml = extraItems.map(function(it){
     return '<div class="kpi"'+(it.title? ' title="'+esc(it.title)+'"':'')+'><div class="kpi-icon">'+iconSvg(it.icon)+'</div><div class="label">'+it.label+'</div><div class="value">'+it.value+'</div>'+
       (it.bar!==undefined? '<div class="bar"><i style="width:'+it.bar+'%"></i></div>':'')+
       '<div class="foot">'+it.foot+'</div></div>';
   }).join('');
+
+  el.innerHTML =
+    '<div class="layer1-label">ພາບລວມ — Layer 1</div>'+
+    '<div class="layer-grid">'+layerCards+'</div>'+
+    '<div class="kpi-extra">'+extraHtml+'</div>';
+
+  el.querySelectorAll('.lc-link').forEach(function(b){
+    b.addEventListener('click', function(){
+      var g = b.getAttribute('data-goto');
+      state.view = (g==='staff') ? 'staff' : 'dept';
+      renderAll();
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
 
   document.getElementById('ringSpent').textContent = fmtMillion(m.actualTotal);
   document.getElementById('ringTotal').textContent = fmtMillion(m.annualBudget);
@@ -6095,34 +6199,40 @@ function renderYearBar(){
   var el = document.getElementById('yearBar');
   if(!el) return;
   var ys = archiveYears();
-  el.innerHTML = ys.map(function(y){
+  // Two clearly-labelled sidebar groups: "ແດຊບອດ" (the year overview + its
+  // individual/department drill-downs) and "ລາຍງານ" (the standalone report
+  // pages meant for reading/printing/presenting, not drilling into). Tools
+  // (QR, AI) get their own small group below — they are neither.
+  el.innerHTML =
+  '<div class="sidebar-label sidebar-label-group">ແດຊບອດ</div>' +
+  ys.map(function(y){
     return '<button class="ybtn" data-y="'+esc(y)+'" aria-pressed="'+(state.view==='year' && state.year===y)+'">'+'ພາບລວມ '+esc(y)+'</button>';
   }).join('') +
-  '<div class="side-divider" role="separator"></div><div class="sidebar-label">ໜ້າ</div>' +
   (EXEC_MODE ? '' :
   '<button class="ybtn ybtn-staff" data-y="__staff__" aria-pressed="'+(state.view==='staff')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>'+
-      'ຂໍ້ມູນພະນັກງານ</button>') +
+      'ລາຍບຸກຄົນ / ຂໍ້ມູນພະນັກງານ</button>' +
+  '<button class="ybtn ybtn-dept" data-y="__dept__" aria-pressed="'+(state.view==='dept')+'">'+
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 13h.01M14 9h.01M14 13h.01M9 21v-4h6v4"/></svg>'+
+      'ລາຍຝ່າຍ / ລາຍສາຂາ</button>') +
+  '<div class="side-divider" role="separator"></div><div class="sidebar-label sidebar-label-group">ລາຍງານ</div>' +
   '<button class="ybtn ybtn-report" data-y="__report__" aria-pressed="'+(state.view==='report')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg>'+
       'ຕິດຕາມຫົວຂໍ້ຝຶກປະຈຳເດືອນ</button>' +
-  (EXEC_MODE ? '' :
-  '<button class="ybtn ybtn-dept" data-y="__dept__" aria-pressed="'+(state.view==='dept')+'">'+
-      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 13h.01M14 9h.01M14 13h.01M9 21v-4h6v4"/></svg>'+
-      'ລາຍຝ່າຍ/ສາຂາ</button>') +
   '<button class="ybtn ybtn-poster" data-y="__poster__" aria-pressed="'+(state.view==='poster')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>'+
       'ລາຍງານຄະນະຜູ້ບໍລິຫານ</button>' +
+  (EXEC_MODE ? '' : (ys.length>1 ? '<button class="ybtn ybtn-multi" data-y="__multi__" aria-pressed="'+(state.view==='multi')+'">'+
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'+
+      'ສະຫຼຸບລາຍປີ</button>' : '')) +
   (EXEC_MODE ? '' :
+  '<div class="side-divider" role="separator"></div><div class="sidebar-label sidebar-label-group">ເຄື່ອງມື</div>' +
   '<button class="ybtn ybtn-qr" data-y="__qr__" aria-pressed="'+(state.view==='qr')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM14 20h3M20 14v3M20 20v.01"/></svg>'+
       'ສ້າງ QR ລົງທະບຽນ</button>' +
   '<button class="ybtn ybtn-ai" data-y="__ai__" aria-pressed="'+(state.view==='ai')+'">'+
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+
-      'ຖາມ AI</button>') +
-  (EXEC_MODE ? '' : (ys.length>1 ? '<button class="ybtn ybtn-multi" data-y="__multi__" aria-pressed="'+(state.view==='multi')+'">'+
-      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'+
-      'ສະຫຼຸບລາຍປີ</button>' : ''));
+      'ຖາມ AI</button>');
   el.querySelectorAll('.ybtn').forEach(function(b){
     b.addEventListener('click', function(){
       var y = b.getAttribute('data-y');
