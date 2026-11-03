@@ -5951,7 +5951,6 @@ function renderYearGlance(m){
 
 function renderKPIs(m){
   var el = document.getElementById('kpiGrid');
-  var trackedTotal = m.trackingTotal;
 
   var topicsPlan = m.planTotal, topicsDoneInplan = m.inplanDone, topicsDoneOutplan = m.outplanDone;
   var topicsOngoing = Math.max(0, topicsPlan - topicsDoneInplan);
@@ -6019,31 +6018,14 @@ function renderKPIs(m){
       lcDrillLinks()+
     '</div>';
 
-  var extraItems = [
-    {
-      icon:'calendar',
-      label:'ຝຶກຕົວຈິງທັງໝົດ',
-      value:'<span class="num">'+fmtInt(trackedTotal)+'</span> <small>ຄັ້ງ</small>',
-      foot:'ໃນແຜນ '+fmtInt(m.inplanTracked)+' (ລວມວຽກເຊື່ອມ '+fmtInt(m.linkedTracked)+') · ນອກແຜນ '+fmtInt(m.byTypeCount.outplan),
-      title:'ທຸກຄັ້ງທີ່ຈັດຕົວຈິງ ລວມທັງຫົວຂໍ້ນອກແຜນ — ອາດຫຼາຍກວ່າ "ຫົວຂໍ້ຝຶກອົບຮົມ" ຂ້າງເທິງ ເຊິ່ງນັບສະເພາະຫົວຂໍ້ໃນແຜນປະຈຳປີ'
-    },
-    {
-      icon:'spend',
-      label:'ງົບທີ່ຍັງເຫຼືອ',
-      value:'<span class="num">'+fmtMillion(m.remaining)+'</span> <small>ກີບ</small>',
-      foot:'ຈາກງົບປະຈຳປີ '+fmtMillion(m.annualBudget)+' ກີບ ('+fmtPct(1-budgetPct)+' ຍັງບໍ່ທັນນຳໃຊ້)'
-    }
-  ];
-  var extraHtml = extraItems.map(function(it){
-    return '<div class="kpi"'+(it.title? ' title="'+esc(it.title)+'"':'')+'><div class="kpi-icon">'+iconSvg(it.icon)+'</div><div class="label">'+it.label+'</div><div class="value">'+it.value+'</div>'+
-      (it.bar!==undefined? '<div class="bar"><i style="width:'+it.bar+'%"></i></div>':'')+
-      '<div class="foot">'+it.foot+'</div></div>';
-  }).join('');
+  // The old "ຝຶກຕົວຈິງທັງໝົດ"/"ງົບທີ່ຍັງເຫຼືອ" extra KPI tiles were removed per
+  // request — their numbers are already covered by the "ພາບລວມປີ" pie cards
+  // above (ແຜນທັງໝົດ/ໃນແຜນ/ນອກແຜນ, and ແຜນທັງໝົດ/ນຳໃຊ້ໄປ/ສືບຕໍ່), so the tiles
+  // here were just duplicating those figures.
 
   el.innerHTML =
     '<div class="layer1-label">ພາບລວມ — Layer 1</div>'+
-    '<div class="layer-grid">'+layerCards+'</div>'+
-    '<div class="kpi-extra">'+extraHtml+'</div>';
+    '<div class="layer-grid">'+layerCards+'</div>';
 
   el.querySelectorAll('.lc-link').forEach(function(b){
     b.addEventListener('click', function(){
