@@ -8380,6 +8380,40 @@ function changeLine(c){
     '</div></div>';
 }
 
+function downloadJsonViaBlob(filename, json){
+  try{
+    var blob = new Blob([json], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    return true;
+  }catch(err){
+    console.error('downloadJsonViaBlob failed', err);
+    return false;
+  }
+}
+// Saves a small JSON file to the viewer's device, used for safety backups
+// (e.g. before a destructive delete). Prefers the Claude Artifact downloads
+// capability when present (DOWNLOADS_API), but always falls back to a plain
+// Blob + <a download> click so this works on the normal GitHub-Pages-hosted
+// page too, not just inside the Claude.ai Artifact mirror.
+function downloadBackupJson(filename, dataObj){
+  var json = JSON.stringify(dataObj, null, 2);
+  if(DOWNLOADS_API){
+    DOWNLOADS_API.save({ filename:filename, data:json }).catch(function(err){
+      var code = (err&&err.code)||'unavailable';
+      if(code==='declined') return;
+      downloadJsonViaBlob(filename, json);
+    });
+  } else {
+    downloadJsonViaBlob(filename, json);
+  }
+}
+
 function showChangeReport(idx){
   var log = (ARCHIVE.rosterLog||[]);
   if(!log.length) return;
@@ -8442,12 +8476,19 @@ function renderChangeReport(){
   var del = document.getElementById('chgDelete');
   if(del) del.addEventListener('click', function(){
     uiConfirm('ລຶບລາຍງານການປຽບທຽບນີ້?',
-      'ລຶບສະເພາະລາຍງານ ('+e.file+') ເທົ່ານັ້ນ — ລາຍຊື່ພະນັກງານປັດຈຸບັນຍັງຄົງຢູ່ຄືເກົ່າ.','ລຶບ').then(function(ok){
+      'ລຶບສະເພາະລາຍງານ ('+e.file+') ເທົ່ານັ້ນ — ລາຍຊື່ພະນັກງານປັດຈຸບັນຍັງຄົງຢູ່ຄືເກົ່າ.\n\n'+
+      'ລະບົບຈະດາວໂຫລດໄຟລ໌ສຳຮອງ (.json) ຂອງລາຍງານນີ້ໃຫ້ອັດຕະໂນມັດກ່ອນລຶບ — ຖ້າລຶບຜິດ ສາມາດເອົາໄຟລ໌ນັ້ນມາກູ້ຄືນໄດ້.','ລຶບ').then(function(ok){
       if(!ok) return;
+      var safeAsOf = String(e.asOf||'').replace(/[^0-9A-Za-z]+/g,'-').replace(/^-+|-+$/g,'');
+      downloadBackupJson('roster-report-backup-'+(safeAsOf||Date.now())+'.json', {
+        exportedAt: nowStr(),
+        note: 'ໄຟລ໌ສຳຮອງອັດຕະໂນມັດ ກ່ອນລຶບລາຍງານ "ການປ່ຽນແປງພະນັກງານ" ຈາກ Dashboard — ເກັບໄວ້ເພື່ອກູ້ຄືນຂໍ້ມູນ ຖ້າລຶບຜິດ.',
+        rosterLogEntry: e
+      });
       ARCHIVE.rosterLog.splice(chgState.entry,1);
       chgState.entry = 0; chgState.tab = 'added';
       persistArchive(); renderAll();
-      toast('ລຶບລາຍງານແລ້ວ');
+      toast('ລຶບລາຍງານແລ້ວ — ໄດ້ດາວໂຫລດໄຟລ໌ສຳຮອງໄວ້ແລ້ວ');
     });
   });
 }
