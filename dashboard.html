@@ -311,13 +311,17 @@
   .layer-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
   @media (max-width:980px){ .layer-grid{ grid-template-columns:1fr; } }
   .year-glance{ margin-bottom:4px; }
-  .glance-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
+  .glance-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; align-items:stretch; }
   @media (max-width:980px){ .glance-grid{ grid-template-columns:1fr; } }
-  .glance-card .donut-card{ text-align:center; }
+  .glance-card{ display:flex; }
+  .glance-card .donut-card{ text-align:center; flex:1; display:flex; flex-direction:column; }
   .glance-card .donut-card h4{ font-size:13.5px; }
   .glance-card .donut-wrap{ justify-content:center; }
   .glance-card .donut-legend{ text-align:left; }
-  .glance-stats{ grid-template-columns:repeat(2,1fr); margin-top:2px; }
+  .glance-card .donut-note{ margin-top:auto; }
+  .glance-card .lc-stats{ margin-top:2px; }
+  .glance-card .lc-stats.glance-stats-2{ grid-template-columns:repeat(2,1fr); }
+  .glance-card .lc-stats.glance-stats-3{ grid-template-columns:repeat(3,1fr); }
   .layer-card{
     background:var(--surface); border:1px solid var(--border); border-top:4px solid var(--accent); border-radius:var(--radius-lg);
     box-shadow:var(--shadow-card); padding:18px 20px; display:flex; flex-direction:column; gap:13px; min-width:0;
@@ -5894,35 +5898,53 @@ function renderYearGlance(m){
   // % here is against ແຜນທັງໝົດ (topicsPlan) specifically, so it reads as a
   // direct comparison to the "ແຜນທັງໝົດ" number shown right next to it on the card.
   var topicsDoneTotalPct = topicsPlan? topicsDoneTotal/topicsPlan : 0;
+  // "ຈັດຕັ້ງປະຕິບັດໄດ້ທັງໝົດ" (the headline total-completed figure) sits in the
+  // donut's own center — same spot Budget/People use for their headline number
+  // — so all 3 glance cards end up with the same shape (donut + 3 stat tiles)
+  // and no leftover empty space from an uneven tile count.
   var topicsGlanceStats =
-    '<div class="lc-stats glance-stats">'+
+    '<div class="lc-stats glance-stats-3">'+
       lcStat('lc-plan', fmtInt(topicsPlan), 'ແຜນທັງໝົດ')+
-      lcStat('lc-done', fmtInt(topicsDoneTotal), 'ຈັດຕັ້ງປະຕິບັດໄດ້ທັງໝົດ', fmtPct(topicsDoneTotalPct)+' ຂອງແຜນທັງໝົດ')+
       lcStat('lc-done', fmtInt(topicsDone), 'ໃນແຜນ', fmtPct(topicsPct)+' ຂອງແຜນ')+
       lcStat('lc-done', fmtInt(topicsDoneOutplan), 'ນອກແຜນ', fmtPct(topicsOutplanPct)+' ຂອງນອກແຜນ')+
     '</div>';
   var topicsGlance = donutCard('ຫົວຂໍ້ຝຶກອົບຮົມ (ແຜນ)', [
     {label:'ຈັດຕັ້ງປະຕິບັດສຳເລັດ', value:topicsDone, color:'var(--pie-blue)'},
     {label:'ສືບຕໍ່', value:topicsOngoing, color:'var(--pie-white)'}
-  ], {size:128, thickness:16, centerLabel:fmtPct(topicsPct), centerSub:'ຄວາມຄືບໜ້າ', note:topicsGlanceStats});
+  ], {size:128, thickness:16, centerLabel:fmtInt(topicsDoneTotal), centerSub:fmtPct(topicsDoneTotalPct)+' ຂອງແຜນ', note:topicsGlanceStats});
 
   var budgetPlan = m.annualBudget, budgetDone = m.actualTotal, budgetOngoing = m.remaining, budgetPct = m.pctUsed;
+  var budgetRemainPct = budgetPlan? budgetOngoing/budgetPlan : 0;
+  var budgetGlanceStats =
+    '<div class="lc-stats glance-stats-3">'+
+      lcStat('lc-plan', fmtMillion(budgetPlan), 'ແຜນທັງໝົດ')+
+      lcStat('lc-done', fmtMillion(budgetDone), 'ນຳໃຊ້ໄປ', fmtPct(budgetPct)+' ຂອງແຜນ')+
+      lcStat('lc-open', fmtMillion(budgetOngoing), 'ສືບຕໍ່', fmtPct(budgetRemainPct)+' ຂອງແຜນ')+
+    '</div>';
   var budgetGlance = donutCard('ງົບປະມານ (ແຜນ)', [
     {label:'ນຳໃຊ້ໄປ', value:budgetDone, color:'var(--pie-blue)'},
     {label:'ສືບຕໍ່', value:budgetOngoing, color:'var(--pie-white)'}
-  ], {size:128, thickness:16, centerLabel:fmtPct(budgetPct), centerSub:'ຄວາມຄືບໜ້າ', fmt:fmtMillion});
+  ], {size:128, thickness:16, centerLabel:fmtPct(budgetPct), centerSub:'ຄວາມຄືບໜ້າ', fmt:fmtMillion, note:budgetGlanceStats});
 
   var peopleTotal = m.totalParticipants.total;
+  var peopleF = m.totalParticipants.f, peopleM = m.totalParticipants.m;
+  var peopleFPct = peopleTotal? peopleF/peopleTotal : 0, peopleMPct = peopleTotal? peopleM/peopleTotal : 0;
+  var peopleGlanceStats =
+    '<div class="lc-stats glance-stats-3">'+
+      lcStat('lc-plan', fmtInt(peopleTotal), 'ລວມທັງໝົດ', 'ເທື່ອຄົນ')+
+      lcStat('lc-done', fmtInt(peopleF), 'ຍິງ', fmtPct(peopleFPct)+' ຂອງທັງໝົດ')+
+      lcStat('lc-done', fmtInt(peopleM), 'ຊາຍ', fmtPct(peopleMPct)+' ຂອງທັງໝົດ')+
+    '</div>';
   var peopleGlance = donutCard('ຜູ້ເຂົ້າຮ່ວມ (ຍິງ-ຊາຍ)', [
-    {label:'ຍິງ', value:m.totalParticipants.f, color:'var(--pie-blue)'},
-    {label:'ຊາຍ', value:m.totalParticipants.m, color:'var(--pie-white)'}
-  ], {size:128, thickness:16, centerLabel:fmtInt(peopleTotal), centerSub:'ເທື່ອຄົນ'});
+    {label:'ຍິງ', value:peopleF, color:'var(--pie-blue)'},
+    {label:'ຊາຍ', value:peopleM, color:'var(--pie-white)'}
+  ], {size:128, thickness:16, centerLabel:fmtInt(peopleTotal), centerSub:'ເທື່ອຄົນ', note:peopleGlanceStats});
 
   card.innerHTML =
     '<div class="layer1-label">ພາບລວມປີ '+esc(String(state.year))+'</div>'+
     '<div class="glance-grid">'+
       '<div class="glance-card">'+topicsGlance+'</div>'+
-      '<div class="glance-card">'+budgetGlance+'</div>'+
+      '<div class="glance-card lc-budget">'+budgetGlance+'</div>'+
       '<div class="glance-card">'+peopleGlance+'</div>'+
     '</div>';
 }
