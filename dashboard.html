@@ -5950,110 +5950,14 @@ function renderYearGlance(m){
 }
 
 function renderKPIs(m){
+  // The old "ພາບລວມ — Layer 1" card row (ຫົວຂໍ້ຝຶກອົບຮົມ / ງົບປະມານ / ຜູ້ເຂົ້າຮ່ວມ)
+  // was removed per request — it duplicated the "ພາບລວມປີ" pie cards rendered
+  // just above it by renderYearGlance() (same ແຜນ/ສຳເລັດ/ສືບຕໍ່ figures, same
+  // "ລາຍບຸກຄົນ"/"ລາຍຝ່າຍ · ລາຍສາຂາ" drill links). #kpiGrid is just cleared now;
+  // the budget-ring widget elsewhere on the page (ຄວາມຄືບໜ້າງົບປະມານປະຈຳປີ,
+  // #ringFigure/#ringSpent/etc.) is a separate section and still updates below.
   var el = document.getElementById('kpiGrid');
-
-  var topicsPlan = m.planTotal, topicsDoneInplan = m.inplanDone, topicsDoneOutplan = m.outplanDone;
-  var topicsOngoing = Math.max(0, topicsPlan - topicsDoneInplan);
-  var topicsPct = topicsPlan? topicsDoneInplan/topicsPlan : 0;
-  var topicsOutplanPct = m.outplanTracked? topicsDoneOutplan/m.outplanTracked : 0;
-  var topicsOngoingPct = topicsPlan? topicsOngoing/topicsPlan : 0;
-
-  var budgetPlan = m.annualBudget, budgetDone = m.actualTotal;
-  var budgetOngoing = m.remaining; // already Math.max(0, plan-actual) — see buildModel()
-  var budgetPct = m.pctUsed;
-
-  // Layer-1 donuts — how many topics were actually HELD this year, split by
-  // type (mirrors the "ຝຶກຕົວຈິງທັງໝົດ" KPI's own ໃນແຜນ/ນອກແຜນ wording, so the
-  // two numbers never disagree); budget used-vs-remaining; participant
-  // gender split. All three use the shared donutCard()/donutSVG() component.
-  var topicsTypeItems = [
-    {label:'ໃນແຜນ (ລວມວຽກເຊື່ອມ '+fmtInt(m.linkedTracked)+')', value:m.inplanTracked, color:'var(--series-inplan)'},
-    {label:'ນອກແຜນ', value:m.outplanTracked, color:'var(--series-outplan)'}
-  ];
-  if(m.byTypeCount.other>0) topicsTypeItems.push({label:'ອື່ນໆ', value:m.byTypeCount.other, color:'var(--text-muted)'});
-  var topicsDonut = donutCard('ຈັດຕົວຈິງທັງໝົດ · ໃນແຜນ vs ນອກແຜນ', topicsTypeItems,
-    {size:76, thickness:13, centerLabel:fmtInt(m.trackingTotal), centerSub:'ຫົວຂໍ້ທັງໝົດ'});
-
-  var budgetUseItems = [
-    {label:'ນຳໃຊ້ຕົວຈິງ', value:budgetDone, color:'var(--series-outplan)'},
-    {label:'ຍັງເຫຼືອ', value:budgetOngoing, color:'var(--series-linked)'}
-  ];
-  var budgetDonut = donutCard('ນຳໃຊ້ທຽບແຜນ', budgetUseItems,
-    {size:76, thickness:13, centerLabel:fmtPct(budgetPct), centerSub:'ນຳໃຊ້ໄປ'});
-
-  var genderItems = [
-    {label:'ຍິງ', value:m.totalParticipants.f, color:'var(--series-linked)'},
-    {label:'ຊາຍ', value:m.totalParticipants.m, color:'var(--series-inplan)'}
-  ];
-  var peopleDonut = donutCard('ອັດຕາສ່ວນ ຍິງ / ຊາຍ', genderItems, {size:76, thickness:13});
-
-  var layerCards =
-    '<div class="layer-card lc-topics" title="ນັບຈາກຊີດ &quot;ຕິດຕາມຕົວຈິງ&quot; — ລາຍການ &quot;ໃນແຜນ&quot; ແລະ &quot;ວຽກເຊື່ອມ&quot; ທີ່ມີສະຖານະ Completed (ໃນນັ້ນເປັນວຽກເຊື່ອມ '+m.linkedDone+' ຫົວຂໍ້)">'+
-      '<div class="lc-head"><div class="lc-icon">'+iconSvg('plan')+'</div><div><div class="lc-title">ຫົວຂໍ້ຝຶກອົບຮົມ</div><div class="lc-sub">ປະຈຳປີ '+esc(String(state.year))+'</div></div></div>'+
-      '<div class="lc-mini-donut lc-topics-donut">'+topicsDonut+'</div>'+
-      '<div class="lc-stats">'+
-        lcStat('lc-plan', fmtInt(topicsPlan), 'ແຜນທັງໝົດ')+
-        lcStat('lc-done', fmtInt(topicsDoneInplan), 'ສຳເລັດ·ໃນແຜນ', fmtPct(topicsPct)+' ຂອງແຜນ', true, 'dept-completed')+
-        lcStat('lc-done', fmtInt(topicsDoneOutplan), 'ສຳເລັດ·ນອກແຜນ', fmtPct(topicsOutplanPct)+' ຂອງນອກແຜນ', true, 'dept-completed')+
-        lcStat('lc-open', fmtInt(topicsOngoing), 'ສືບຕໍ່', fmtPct(topicsOngoingPct)+' ຂອງແຜນ')+
-      '</div>'+
-      '<div class="lc-pct-row"><div class="lc-pct-bar"><i style="width:'+Math.min(100,topicsPct*100)+'%"></i></div><div class="lc-pct-val">'+fmtPct(topicsPct)+'</div></div>'+
-      lcDrillLinks()+
-    '</div>'+
-    '<div class="layer-card lc-budget" title="ແຜນ = ງົບປະຈຳປີທີ່ອະນຸມັດ · ສຳເລັດ = ນຳໃຊ້ຕົວຈິງ · ສືບຕໍ່ = ງົບທີ່ຍັງເຫຼືອ (ແຜນ ລົບ ນຳໃຊ້ຕົວຈິງ)">'+
-      '<div class="lc-head"><div class="lc-icon">'+iconSvg('wallet')+'</div><div><div class="lc-title">ງົບປະມານ</div><div class="lc-sub">ປະຈຳປີ '+esc(String(state.year))+' · ກີບ</div></div></div>'+
-      '<div class="lc-mini-donut lc-budget-donut">'+budgetDonut+'</div>'+
-      '<div class="lc-stats">'+
-        lcStat('lc-plan', fmtMillion(budgetPlan), 'ແຜນ')+
-        lcStat('lc-done', fmtMillion(budgetDone), 'ສຳເລັດ', null, true, 'budget-total')+
-        lcStat('lc-open', fmtMillion(budgetOngoing), 'ສືບຕໍ່')+
-      '</div>'+
-      '<div class="lc-pct-row"><div class="lc-pct-bar"><i style="width:'+Math.min(100,budgetPct*100)+'%"></i></div><div class="lc-pct-val">'+fmtPct(budgetPct)+'</div></div>'+
-      lcDrillLinks()+
-    '</div>'+
-    '<div class="layer-card lc-people">'+
-      '<div class="lc-head"><div class="lc-icon">'+iconSvg('users')+'</div><div><div class="lc-title">ຜູ້ເຂົ້າຮ່ວມ</div><div class="lc-sub">ຈັກເທື່ອຄົນ — ນັບລວມທຸກຄັ້ງ</div></div></div>'+
-      '<div class="lc-people-value lc-clickable num" tabindex="0" role="button" data-drill="topic-participants">'+fmtInt(m.totalParticipants.total)+' <small>ເທື່ອຄົນ</small></div>'+
-      '<div class="lc-mini-donut lc-people-donut">'+peopleDonut+'</div>'+
-      lcDrillLinks()+
-    '</div>';
-
-  // The old "ຝຶກຕົວຈິງທັງໝົດ"/"ງົບທີ່ຍັງເຫຼືອ" extra KPI tiles were removed per
-  // request — their numbers are already covered by the "ພາບລວມປີ" pie cards
-  // above (ແຜນທັງໝົດ/ໃນແຜນ/ນອກແຜນ, and ແຜນທັງໝົດ/ນຳໃຊ້ໄປ/ສືບຕໍ່), so the tiles
-  // here were just duplicating those figures.
-
-  el.innerHTML =
-    '<div class="layer1-label">ພາບລວມ — Layer 1</div>'+
-    '<div class="layer-grid">'+layerCards+'</div>';
-
-  el.querySelectorAll('.lc-link').forEach(function(b){
-    b.addEventListener('click', function(){
-      var g = b.getAttribute('data-goto');
-      state.view = (g==='staff') ? 'staff' : 'dept';
-      renderAll();
-      window.scrollTo({top:0, behavior:'smooth'});
-    });
-  });
-
-  var topicsDonutEl = el.querySelector('.lc-topics-donut .donut-card');
-  if(topicsDonutEl) bindDonutTips(topicsDonutEl, topicsTypeItems, {unit:'ຫົວຂໍ້'});
-  var budgetDonutEl = el.querySelector('.lc-budget-donut .donut-card');
-  if(budgetDonutEl) bindDonutTips(budgetDonutEl, budgetUseItems, {unit:'ກີບ', fmt:fmtMillion});
-  var peopleDonutEl = el.querySelector('.lc-people-donut .donut-card');
-  if(peopleDonutEl) bindDonutTips(peopleDonutEl, genderItems, {unit:'ເທື່ອຄົນ'});
-
-  function triggerDrill(key){
-    if(key==='dept-completed') openDeptCompletedDrill(m);
-    else if(key==='budget-total') openBudgetDrill(m);
-    else if(key==='topic-participants') openTopicParticipantsDrill(m);
-  }
-  el.querySelectorAll('[data-drill]').forEach(function(b){
-    b.addEventListener('click', function(){ triggerDrill(b.getAttribute('data-drill')); });
-    b.addEventListener('keydown', function(e){
-      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); triggerDrill(b.getAttribute('data-drill')); }
-    });
-  });
+  if(el) el.innerHTML = '';
 
   document.getElementById('ringSpent').textContent = fmtMillion(m.actualTotal);
   document.getElementById('ringTotal').textContent = fmtMillion(m.annualBudget);
