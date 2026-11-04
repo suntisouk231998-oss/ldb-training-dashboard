@@ -581,6 +581,13 @@
     border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-1);
   }
   .mr-select:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  /* The dropdown LIST (the open <option> popup) is drawn by the OS, not by our
+     CSS — on Windows/Chrome it renders on a light system background regardless
+     of the page's dark theme, so inheriting --text-1 (near-white) left the
+     option text invisible except the one hovered row (browser applies its own
+     highlight colors there). Force explicit dark-on-light colors on <option>
+     so every row stays readable against that native light popup. */
+  .mr-select option{ color:#0b1733; background:#ffffff; }
   .mr-dash{ font-size:12px; color:var(--text-muted); }
   .mr-apply, .mr-clear{
     appearance:none; font:inherit; cursor:pointer; font-size:12.5px; font-weight:700;
