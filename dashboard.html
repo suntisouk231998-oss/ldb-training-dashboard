@@ -311,6 +311,9 @@
   .layer-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
   @media (max-width:980px){ .layer-grid{ grid-template-columns:1fr; } }
   .year-glance{ margin-bottom:4px; }
+  .glance-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 16px; margin-bottom:4px; }
+  .glance-head .layer1-label{ margin-bottom:0; }
+  .glance-head .mr-row{ margin-top:0; }
   .glance-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; align-items:stretch; }
   @media (max-width:980px){ .glance-grid{ grid-template-columns:1fr; } }
   .glance-card{ display:flex; }
@@ -4452,7 +4455,9 @@ var state = {
   posterMonth: -1,          // poster page's own scope, independent of state.month/reportMonth/deptMonth
   posterMonthTo: null,      // range end paired with state.posterMonth
   posterQuarter: null,      // null = whole year, else 0..3 (mutually exclusive with posterMonth)
-  posterZoom: 1             // 0.7..1.5 — CSS `zoom` factor applied to #posterBody only
+  posterZoom: 1,            // 0.7..1.5 — CSS `zoom` factor applied to #posterBody only
+  glanceMonth: -1,          // month-range filter for the "ພາບລວມປີ" pie cards, independent of every other picker above
+  glanceMonthTo: null       // range end paired with state.glanceMonth
 };
 
 /* ---- month-range helpers ----
@@ -5877,8 +5882,68 @@ function openTopicParticipantsDrill(m){
       (all.length>25? '<div class="dk-note">ສະແດງ 25 ຫົວຂໍ້ທີ່ມີຜູ້ເຂົ້າຮ່ວມຫຼາຍທີ່ສຸດ, ຈາກທັງໝົດ '+fmtInt(all.length)+' ຫົວຂໍ້</div>' : '');
   uiModal({title:'ຫົວຂໍ້ທີ່ມີຜູ້ເຂົ້າຮ່ວມຫຼາຍທີ່ສຸດ', bodyHtml:body, noCancel:true, okText:'ປິດ'});
 }
+// Recomputes the 3 "ພາບລວມປີ" cards' raw figures for a given month-range
+// scope. `months` is -1 (whole year — the fast path: trust buildModel()'s own
+// numbers, the exact values already shown everywhere else on the page) or an
+// array of month indices (0..11) from effMonths(state.glanceMonth,
+// state.glanceMonthTo). For a real range it rebuilds every figure straight
+// from the raw sheet rows (RAW.plan / RAW.tracking / RAW.summary), using the
+// same classification helpers buildModel() itself uses (normType/isInPlan/
+// isCompleted/isCancelled/monthIdxOf), so a filtered card can never disagree
+// with what the month/quarter filters elsewhere on the page would show for
+// that same range. Budget is the one figure NOT reconstructed from per-row
+// data — RAW.summary.actual_by_month comes straight from the sheet's own
+// monthly "Actual" row (see buildModel()'s comment on this), which is more
+// reliable than trying to attribute real spend back to individual topics.
+function computeGlanceStats(months){
+  var m = MODEL;
+  if(months===-1 || !RAW){
+    return {
+      topicsPlan: m.planTotal, topicsDone: m.inplanDone, topicsDoneOutplan: m.outplanDone,
+      outplanTracked: m.outplanTracked,
+      budgetPlan: m.annualBudget, budgetDone: m.actualTotal, budgetRemaining: m.remaining,
+      peopleF: m.totalParticipants.f, peopleM: m.totalParticipants.m, peopleTotal: m.totalParticipants.total
+    };
+  }
+  function inMonths(raw){ return months.indexOf(monthIdxOf(String(raw||'').trim()))!==-1; }
+
+  var topicsPlan = 0;
+  RAW.plan.forEach(function(p){ if(inMonths(p.month)) topicsPlan++; });
+
+  // peopleTotal mirrors buildModel()'s own totalParticipants.total formula
+  // (prefer an explicit "total" column over f+m) so the filtered figure stays
+  // consistent with the whole-year one if a row ever has a total that doesn't
+  // exactly match its own f+m split.
+  var topicsDone=0, topicsDoneOutplan=0, outplanTracked=0, peopleF=0, peopleM=0, peopleTotal=0;
+  RAW.tracking.forEach(function(t){
+    if(!inMonths(t.month)) return;
+    peopleF += num(t.f); peopleM += num(t.m);
+    peopleTotal += num(t.total) || (num(t.f)+num(t.m));
+    var bucket = normType(t.type);
+    if(bucket==='outplan') outplanTracked++;
+    if(isCancelled(t.status) || !isCompleted(t.status)) return;
+    if(isInPlan(bucket)) topicsDone++;
+    else if(bucket==='outplan') topicsDoneOutplan++;
+  });
+
+  var budgetPlan=0, budgetDone=0;
+  months.forEach(function(mi){
+    budgetPlan += num(RAW.summary.planned_by_month[MONTHS_EN[mi]]);
+    budgetDone += num(RAW.summary.actual_by_month[MONTHS_EN[mi]]);
+  });
+
+  return {
+    topicsPlan:topicsPlan, topicsDone:topicsDone, topicsDoneOutplan:topicsDoneOutplan,
+    outplanTracked:outplanTracked,
+    budgetPlan:budgetPlan, budgetDone:budgetDone, budgetRemaining:Math.max(0, budgetPlan-budgetDone),
+    peopleF:peopleF, peopleM:peopleM, peopleTotal:peopleTotal
+  };
+}
 // "ພາບລວມປີ" — 3 simple 2-slice pie cards (ຫົວຂໍ້ຝຶກອົບຮົມ, ງົບປະມານ, ຜູ້ເຂົ້າຮ່ວມ),
 // each in the blue/white pair (--pie-blue/--pie-white) per the user's request.
+// A month-range filter (reusing the same renderMonthRangePicker() component
+// every other tab's month picker uses) lets these 3 cards scope down to a
+// chosen span of months instead of always showing the whole year.
 // This sits ABOVE the existing detailed Layer-1 cards (donuts + click-to-drill
 // rankings from earlier phases) — additive, not a replacement; the detailed
 // cards below are unchanged.
@@ -5890,10 +5955,13 @@ function renderYearGlance(m){
   // else in the exec build (tab layout, poster/report pages) is unchanged either way.
   if(EXEC_MODE){ card.innerHTML = ''; return; }
 
-  var topicsPlan = m.planTotal, topicsDone = m.inplanDone, topicsDoneOutplan = m.outplanDone;
+  var months = effMonths(state.glanceMonth, state.glanceMonthTo); // -1 | [months]
+  var g = computeGlanceStats(months);
+
+  var topicsPlan = g.topicsPlan, topicsDone = g.topicsDone, topicsDoneOutplan = g.topicsDoneOutplan;
   var topicsOngoing = Math.max(0, topicsPlan - topicsDone);
   var topicsPct = topicsPlan? topicsDone/topicsPlan : 0;
-  var topicsOutplanPct = m.outplanTracked? topicsDoneOutplan/m.outplanTracked : 0;
+  var topicsOutplanPct = g.outplanTracked? topicsDoneOutplan/g.outplanTracked : 0;
   var topicsDoneTotal = topicsDone + topicsDoneOutplan;
   // % here is against ແຜນທັງໝົດ (topicsPlan) specifically, so it reads as a
   // direct comparison to the "ແຜນທັງໝົດ" number shown right next to it on the card.
@@ -5913,7 +5981,8 @@ function renderYearGlance(m){
     {label:'ສືບຕໍ່', value:topicsOngoing, color:'var(--pie-white)'}
   ], {size:128, thickness:16, centerLabel:fmtInt(topicsDoneTotal), centerSub:fmtPct(topicsDoneTotalPct)+' ຂອງແຜນ', note:topicsGlanceStats});
 
-  var budgetPlan = m.annualBudget, budgetDone = m.actualTotal, budgetOngoing = m.remaining, budgetPct = m.pctUsed;
+  var budgetPlan = g.budgetPlan, budgetDone = g.budgetDone, budgetOngoing = g.budgetRemaining;
+  var budgetPct = budgetPlan? budgetDone/budgetPlan : 0;
   var budgetRemainPct = budgetPlan? budgetOngoing/budgetPlan : 0;
   var budgetGlanceStats =
     '<div class="lc-stats glance-stats-3">'+
@@ -5926,8 +5995,7 @@ function renderYearGlance(m){
     {label:'ສືບຕໍ່', value:budgetOngoing, color:'var(--pie-white)'}
   ], {size:128, thickness:16, centerLabel:fmtPct(budgetPct), centerSub:'ຄວາມຄືບໜ້າ', fmt:fmtMillion, note:budgetGlanceStats});
 
-  var peopleTotal = m.totalParticipants.total;
-  var peopleF = m.totalParticipants.f, peopleM = m.totalParticipants.m;
+  var peopleF = g.peopleF, peopleM = g.peopleM, peopleTotal = g.peopleTotal;
   var peopleFPct = peopleTotal? peopleF/peopleTotal : 0, peopleMPct = peopleTotal? peopleM/peopleTotal : 0;
   var peopleGlanceStats =
     '<div class="lc-stats glance-stats-3">'+
@@ -5940,13 +6008,20 @@ function renderYearGlance(m){
     {label:'ຊາຍ', value:peopleM, color:'var(--pie-white)'}
   ], {size:128, thickness:16, centerLabel:fmtInt(peopleTotal), centerSub:'ເທື່ອຄົນ', note:peopleGlanceStats});
 
+  var scopeLbl = months===-1 ? 'ທັງປີ' : monthRangeLabel(state.glanceMonth, state.glanceMonthTo);
+
   card.innerHTML =
-    '<div class="layer1-label">ພາບລວມປີ '+esc(String(state.year))+'</div>'+
+    '<div class="glance-head">'+
+      '<div class="layer1-label">ພາບລວມປີ '+esc(String(state.year))+' — '+esc(scopeLbl)+'</div>'+
+      '<div class="mr-row" id="glanceMonthRange" role="group" aria-label="ຊ່ວງເດືອນ"></div>'+
+    '</div>'+
     '<div class="glance-grid">'+
       '<div class="glance-card">'+topicsGlance+'</div>'+
       '<div class="glance-card lc-budget">'+budgetGlance+'</div>'+
       '<div class="glance-card">'+peopleGlance+'</div>'+
     '</div>';
+
+  renderMonthRangePicker('glanceMonthRange', 'glanceMonth', 'glanceMonthTo', function(){ renderYearGlance(MODEL); });
 }
 
 function renderKPIs(m){
