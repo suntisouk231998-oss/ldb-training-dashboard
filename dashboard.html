@@ -5882,6 +5882,22 @@ function openTopicParticipantsDrill(m){
       (all.length>25? '<div class="dk-note">ສະແດງ 25 ຫົວຂໍ້ທີ່ມີຜູ້ເຂົ້າຮ່ວມຫຼາຍທີ່ສຸດ, ຈາກທັງໝົດ '+fmtInt(all.length)+' ຫົວຂໍ້</div>' : '');
   uiModal({title:'ຫົວຂໍ້ທີ່ມີຜູ້ເຂົ້າຮ່ວມຫຼາຍທີ່ສຸດ', bodyHtml:body, noCancel:true, okText:'ປິດ'});
 }
+// A handful of rows in the tracking sheet have a blank "ເດືອນ" (month-name)
+// cell even though their "ມື້ເລີ່ມ" (start date) is filled in — monthIdxOf()
+// alone would silently drop them from any month-range filter even though
+// they plainly belong in range by date (confirmed against the live sheet:
+// 8 completed "ນອກແຜນ" rows with month="" but a real start date). Fall back
+// to the parsed start date (already an ISO "YYYY-MM-DD" string — see
+// isoDate()) whenever the month-name text is missing or unrecognized, for
+// both tracking and plan rows (plan rows currently have no blanks, but the
+// fallback costs nothing and guards against the same gap appearing there).
+function monthIdxFromRow(item){
+  var mi = monthIdxOf(String(item.month||'').trim());
+  if(mi!==-1) return mi;
+  var s = item.start;
+  if(typeof s==='string' && /^\d{4}-\d{2}-\d{2}/.test(s)) return (+s.slice(5,7))-1;
+  return -1;
+}
 // Recomputes the 3 "ພາບລວມປີ" cards' raw figures for a given month-range
 // scope. `months` is -1 (whole year — the fast path: trust buildModel()'s own
 // numbers, the exact values already shown everywhere else on the page) or an
@@ -5889,12 +5905,12 @@ function openTopicParticipantsDrill(m){
 // state.glanceMonthTo). For a real range it rebuilds every figure straight
 // from the raw sheet rows (RAW.plan / RAW.tracking / RAW.summary), using the
 // same classification helpers buildModel() itself uses (normType/isInPlan/
-// isCompleted/isCancelled/monthIdxOf), so a filtered card can never disagree
-// with what the month/quarter filters elsewhere on the page would show for
-// that same range. Budget is the one figure NOT reconstructed from per-row
-// data — RAW.summary.actual_by_month comes straight from the sheet's own
-// monthly "Actual" row (see buildModel()'s comment on this), which is more
-// reliable than trying to attribute real spend back to individual topics.
+// isCompleted/isCancelled/monthIdxFromRow), so a filtered card can never
+// disagree with what the month/quarter filters elsewhere on the page would
+// show for that same range. Budget is the one figure NOT reconstructed from
+// per-row data — RAW.summary.actual_by_month comes straight from the sheet's
+// own monthly "Actual" row (see buildModel()'s comment on this), which is
+// more reliable than trying to attribute real spend back to individual topics.
 function computeGlanceStats(months){
   var m = MODEL;
   if(months===-1 || !RAW){
@@ -5905,10 +5921,10 @@ function computeGlanceStats(months){
       peopleF: m.totalParticipants.f, peopleM: m.totalParticipants.m, peopleTotal: m.totalParticipants.total
     };
   }
-  function inMonths(raw){ return months.indexOf(monthIdxOf(String(raw||'').trim()))!==-1; }
+  function inMonths(item){ return months.indexOf(monthIdxFromRow(item))!==-1; }
 
   var topicsPlan = 0;
-  RAW.plan.forEach(function(p){ if(inMonths(p.month)) topicsPlan++; });
+  RAW.plan.forEach(function(p){ if(inMonths(p)) topicsPlan++; });
 
   // peopleTotal mirrors buildModel()'s own totalParticipants.total formula
   // (prefer an explicit "total" column over f+m) so the filtered figure stays
@@ -5916,7 +5932,7 @@ function computeGlanceStats(months){
   // exactly match its own f+m split.
   var topicsDone=0, topicsDoneOutplan=0, outplanTracked=0, peopleF=0, peopleM=0, peopleTotal=0;
   RAW.tracking.forEach(function(t){
-    if(!inMonths(t.month)) return;
+    if(!inMonths(t)) return;
     peopleF += num(t.f); peopleM += num(t.m);
     peopleTotal += num(t.total) || (num(t.f)+num(t.m));
     var bucket = normType(t.type);
