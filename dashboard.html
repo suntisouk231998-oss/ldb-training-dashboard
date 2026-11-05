@@ -8963,6 +8963,14 @@ function bindStaffControls(){
 
 /* ---------------- top-level render ---------------- */
 function renderAll(){
+  // A chart/table hover tooltip (showTip) is position:fixed and only ever
+  // hidden on that element's own mouseleave — switching views/tabs while the
+  // mouse is still sitting over a now-hidden chart (e.g. hovering the budget
+  // chart on the dashboard, then clicking over to the Poster/report page)
+  // left it floating on screen, overlapping whatever renders underneath it
+  // next. Clearing it here means every navigation path (section tabs, year
+  // sub-nav, month/quarter picks) always starts from a clean slate.
+  hideTip();
   var ys = archiveYears();
   if(!ys.length){ return; }
   if(ys.indexOf(state.year)===-1) state.year = ys[ys.length-1];
