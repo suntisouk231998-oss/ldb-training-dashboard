@@ -790,6 +790,9 @@
   .dp-nums .dp-plan{ color:var(--text-2); font-weight:600; }
   .dp-note{ font-size:11px; color:var(--text-muted); font-weight:600; margin-left:8px; }
   .dp-extra{ font-size:11px; color:var(--text-muted); font-weight:600; margin-top:4px; }
+  /* clarifies the "ຫົວຂໍ້ຝຶກອົບຮົມ" glance donut's completed-only headline
+     against Report/Poster's all-rows total (see renderYearGlance). */
+  .lc-foot-note{ font-size:11px; color:var(--text-muted); font-weight:600; margin-top:8px; line-height:1.5; text-align:center; }
 
   /* ---------- monthly training calendar ---------- */
   .cal-scroll{ overflow-x:auto; border-radius:var(--radius-md); }
@@ -5924,6 +5927,12 @@ function computeGlanceStats(months){
   if(months===-1 || !RAW){
     return {
       topicsPlan: m.planTotal, topicsDone: m.inplanDone, topicsDoneOutplan: m.outplanDone,
+      // "ສຳເລັດແລ້ວ" (topicsDone+topicsDoneOutplan) excludes any tracking row
+      // that isn't Completed/cancelled yet — topicsOpen is that remainder, so
+      // the Dashboard donut can say so explicitly instead of silently looking
+      // smaller than Report/Poster's "ຝຶກຕົວຈິງທັງໝົດ" (= ALL tracking rows,
+      // completed or not). See renderYearGlance's topicsGlanceStats note.
+      topicsOpen: (m.inplanOpen||0) + (m.outplanOpen||0),
       outplanTracked: m.outplanTracked,
       budgetPlan: m.annualBudget, budgetDone: m.actualTotal, budgetRemaining: m.remaining,
       peopleF: m.totalParticipants.f, peopleM: m.totalParticipants.m, peopleTotal: m.totalParticipants.total
@@ -5938,16 +5947,24 @@ function computeGlanceStats(months){
   // (prefer an explicit "total" column over f+m) so the filtered figure stays
   // consistent with the whole-year one if a row ever has a total that doesn't
   // exactly match its own f+m split.
-  var topicsDone=0, topicsDoneOutplan=0, outplanTracked=0, peopleF=0, peopleM=0, peopleTotal=0;
+  var topicsDone=0, topicsDoneOutplan=0, topicsOpen=0, outplanTracked=0, peopleF=0, peopleM=0, peopleTotal=0;
   RAW.tracking.forEach(function(t){
     if(!inMonths(t)) return;
     peopleF += num(t.f); peopleM += num(t.m);
     peopleTotal += num(t.total) || (num(t.f)+num(t.m));
     var bucket = normType(t.type);
-    if(bucket==='outplan') outplanTracked++;
-    if(isCancelled(t.status) || !isCompleted(t.status)) return;
-    if(isInPlan(bucket)) topicsDone++;
-    else if(bucket==='outplan') topicsDoneOutplan++;
+    var inPlanBucket = isInPlan(bucket), isOutplanBucket = (bucket==='outplan');
+    if(isOutplanBucket) outplanTracked++;
+    if(isCancelled(t.status)) return;
+    if(!isCompleted(t.status)){
+      // not completed and not cancelled = still "ກຳລັງດຳເນີນການ" — counted
+      // in Report/Poster's all-rows total but deliberately left out of the
+      // donut's completed-only headline, so track it separately here too.
+      if(inPlanBucket || isOutplanBucket) topicsOpen++;
+      return;
+    }
+    if(inPlanBucket) topicsDone++;
+    else if(isOutplanBucket) topicsDoneOutplan++;
   });
 
   var budgetPlan=0, budgetDone=0;
@@ -5957,7 +5974,7 @@ function computeGlanceStats(months){
   });
 
   return {
-    topicsPlan:topicsPlan, topicsDone:topicsDone, topicsDoneOutplan:topicsDoneOutplan,
+    topicsPlan:topicsPlan, topicsDone:topicsDone, topicsDoneOutplan:topicsDoneOutplan, topicsOpen:topicsOpen,
     outplanTracked:outplanTracked,
     budgetPlan:budgetPlan, budgetDone:budgetDone, budgetRemaining:Math.max(0, budgetPlan-budgetDone),
     peopleF:peopleF, peopleM:peopleM, peopleTotal:peopleTotal
@@ -5990,6 +6007,14 @@ function renderYearGlance(m){
   // % here is against ແຜນທັງໝົດ (topicsPlan) specifically, so it reads as a
   // direct comparison to the "ແຜນທັງໝົດ" number shown right next to it on the card.
   var topicsDoneTotalPct = topicsPlan? topicsDoneTotal/topicsPlan : 0;
+  // Report/Poster's "ຝຶກຕົວຈິງທັງໝົດ" KPI counts EVERY tracking row regardless
+  // of status (= topicsDoneTotal + topicsStillOpen), while this card's center
+  // number is completed-only (topicsDoneTotal) — a user comparing the two
+  // headline numbers side by side (e.g. "214" here vs "215" there) reads it as
+  // a data mismatch when it's really two different definitions of the same
+  // sheet. Surface the gap explicitly instead of letting the two numbers
+  // silently disagree (requested fix, 2026-11).
+  var topicsStillOpen = g.topicsOpen||0;
   // "ຈັດຕັ້ງປະຕິບັດໄດ້ທັງໝົດ" (the headline total-completed figure) sits in the
   // donut's own center — same spot Budget/People use for their headline number
   // — so all 3 glance cards end up with the same shape (donut + 3 stat tiles)
@@ -5999,7 +6024,10 @@ function renderYearGlance(m){
       lcStat('lc-plan', fmtInt(topicsPlan), 'ແຜນທັງໝົດ')+
       lcStat('lc-done', fmtInt(topicsDone), 'ໃນແຜນ', fmtPct(topicsPct)+' ຂອງແຜນ')+
       lcStat('lc-done', fmtInt(topicsDoneOutplan), 'ນອກແຜນ', fmtPct(topicsOutplanPct)+' ຂອງນອກແຜນ')+
-    '</div>';
+    '</div>'+
+    (topicsStillOpen>0
+      ? '<div class="lc-foot-note">+'+fmtInt(topicsStillOpen)+' ກຳລັງດຳເນີນການ (ຍັງບໍ່ທັນສຳເລັດ) — ລວມທັງໝົດ '+fmtInt(topicsDoneTotal+topicsStillOpen)+' ຄັ້ງທີ່ບັນທຶກໄວ້ ດັ່ງທີ່ສະແດງຢູ່ Report/Poster</div>'
+      : '');
   var topicsGlance = donutCard('ຫົວຂໍ້ຝຶກອົບຮົມ (ແຜນ)', [
     {label:'ຈັດຕັ້ງປະຕິບັດສຳເລັດ', value:topicsDone, color:'var(--pie-blue)'},
     {label:'ສືບຕໍ່', value:topicsOngoing, color:'var(--pie-white)'}
