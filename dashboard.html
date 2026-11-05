@@ -789,6 +789,7 @@
   .dp-nums .dp-slash{ color:var(--text-muted); font-weight:500; margin:0 3px; }
   .dp-nums .dp-plan{ color:var(--text-2); font-weight:600; }
   .dp-note{ font-size:11px; color:var(--text-muted); font-weight:600; margin-left:8px; }
+  .dp-extra{ font-size:11px; color:var(--text-muted); font-weight:600; margin-top:4px; }
 
   /* ---------- monthly training calendar ---------- */
   .cal-scroll{ overflow-x:auto; border-radius:var(--radius-md); }
@@ -6918,11 +6919,17 @@ document.getElementById('qrAddBtn').addEventListener('click', addQrSession);
 function deptRowsForScope(m, mi){
   var out = {};
   function add(dept, src){
-    if(!out[dept]) out[dept] = {dept:dept, topics:0, participants:0, budget:0, planCount:0};
+    if(!out[dept]) out[dept] = {dept:dept, topics:0, participants:0, budget:0, planCount:0, inplanCount:0, outplanCount:0};
     out[dept].topics += src.total;
     out[dept].participants += src.participants;
     out[dept].budget += src.planBudget;
     out[dept].planCount += (src.planCount||0);
+    // inplanAll (= "ໃນແຜນ" + "ວຽກເຊື່ອມໃນແຜນ") is the only part of "topics"
+    // that's actually comparable to planCount — outplan is separate activity
+    // outside the plan and must never be blended into a ແຜນ-progress ratio
+    // (see deptProgressCell).
+    out[dept].inplanCount += (src.inplanAll||0);
+    out[dept].outplanCount += (src.outplan||0);
   }
   var months = mi===-1 ? [0,1,2,3,4,5,6,7,8,9,10,11] : (Array.isArray(mi) ? mi : [mi]);
   months.forEach(function(i){
@@ -6934,19 +6941,33 @@ function deptRowsForScope(m, mi){
 }
 
 /* compact "actual / plan" progress cell for the department report table —
-   reuses the same tone thresholds as the quarter tiles (see renderQuarters)
-   so color meaning stays consistent across the dashboard */
+   reuses the same tone thresholds as the quarter tiles (see renderQuarters).
+   IMPORTANT: the % and bar are driven by inplanCount/planCount ONLY — mixing
+   outplanCount into the numerator (as this used to do via r.topics, which is
+   inplan+outplan+linked+other combined) produced misleading ratios like
+   "18/18 = 100%" or "17/5 = 340%" where most of the "actual" count was really
+   unrelated out-of-plan sessions that happened to add up near/over the plan
+   total. outplanCount is shown separately underneath instead, never folded
+   into the percentage (requested fix, 2026-11). */
 function deptProgressCell(r){
+  var inplanCount = r.inplanCount||0, outplanCount = r.outplanCount||0;
+  var extra = outplanCount>0 ? '<div class="dp-extra">+'+fmtInt(outplanCount)+' ນອກແຜນ</div>' : '';
   if(r.planCount<=0){
-    return '<div class="dp-nums"><b>'+fmtInt(r.topics)+'</b><span class="dp-note">ນອກແຜນ</span></div>';
+    if(inplanCount<=0){
+      return '<div class="dp-nums"><b>'+fmtInt(outplanCount)+'</b><span class="dp-note">ນອກແຜນ</span></div>';
+    }
+    // edge case: in-plan-type sessions tracked for a dept with 0 planned
+    // topics in scope — show the raw counts, no % (nothing to divide by)
+    return '<div class="dp-nums"><b>'+fmtInt(inplanCount)+'</b><span class="dp-note">ໃນແຜນ</span></div>'+extra;
   }
-  var pct = r.topics/r.planCount;
+  var pct = inplanCount/r.planCount;
   var pctPct = Math.round(pct*1000)/10;
   var w = Math.min(100, pct*100);
   var tone = pctPct>=50?'good':(pctPct>=20?'mid':'low');
-  return '<div class="dp-nums"><b>'+fmtInt(r.topics)+'</b><span class="dp-slash">/</span><span class="dp-plan">'+fmtInt(r.planCount)+'</span></div>'+
+  return '<div class="dp-nums"><b>'+fmtInt(inplanCount)+'</b><span class="dp-slash">/</span><span class="dp-plan">'+fmtInt(r.planCount)+'</span><span class="dp-note">ໃນແຜນ</span></div>'+
     '<div class="q-bar"><i class="'+tone+'" style="width:'+w+'%"></i></div>'+
-    '<div class="q-pct '+tone+'">'+fmtPct(pct)+'</div>';
+    '<div class="q-pct '+tone+'">'+fmtPct(pct)+'</div>'+
+    extra;
 }
 
 function reportScopeStats(m, mi){
