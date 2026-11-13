@@ -55,12 +55,13 @@ const ROOT = path.join(__dirname, '..');
   }
 
   const xlsxPath = path.join(ROOT, 'sheet_export.xlsx');
-  const xlsxBuffer = fs.readFileSync(xlsxPath);
-  await page.setInputFiles('#fileInput', {
-    name: 'sheet_export.xlsx',
-    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    buffer: xlsxBuffer
-  });
+  // Pass the file by PATH rather than reading it into an in-memory buffer:
+  // Playwright's setInputFiles rejects an in-memory buffer over 50MB ("Cannot
+  // set buffer larger than 50Mb, please write it to a file and pass its path
+  // instead" — exactly what started failing once the live Google Sheet export
+  // grew past that size). Passing the path avoids that cap entirely and reads
+  // the real file straight from disk, with its own correct name/mimetype.
+  await page.setInputFiles('#fileInput', xlsxPath);
 
   // The app opens a modal asking which year this data is for (pre-filled),
   // and sometimes a second confirm modal ("overwrite existing year data?").
